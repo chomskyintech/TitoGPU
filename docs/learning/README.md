@@ -79,3 +79,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 05 — Autonomous K-Tile Sequencing
 
 [Open the lesson](05-autonomous-k-tile-sequencing.md). Learn how the controller coordinates A/B burst completion, launches compute, and accumulates multi-tile results.
+
+
+## Lesson 06 — External-Memory Read Frontend
+
+[Open the lesson](06-external-memory-read-frontend.md). Learn request/response handshakes, word-addressed tile layout, last-beat validation, and the limits of a generic DMA frontend.
