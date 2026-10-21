@@ -221,3 +221,15 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Limits: one outstanding external read, sequential A/B reads, no AXI/NoC adapter, no SRAM macros, and fatal protocol errors require external reset.
 - Learning material: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
 - Next milestone: add cycle counters and vary compute/memory latency to quantify stall cycles, then implement a bus-specific adapter and workload tests.
+
+
+
+## 2026-10-21 — Double-buffered overlap counters added; CI pending
+
+- Branch: `feature/tito-systolic-mac`
+- Testbench change: `tb/tb_tito_systolic_double_buffered_dma_reader.v` now reports total operation cycles, compute-busy cycles, operation-active/compute-idle cycles, memory-active cycles, accepted response beats, and request-backpressure cycles.
+- Purpose: make overlap/stall behavior observable before running controlled memory-latency experiments.
+- CI status: pending for the testbench change. Do not treat the new counters or this entry as CI-verified until the workflow completes.
+- Methodology warning: the current mock-memory response cadence is unchanged. These counters are diagnostic; they are not a latency sweep and do not establish speedup, throughput, physical area, timing, power, or performance per watt.
+- Learning material: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
+- Next step: run deterministic memory response-gap modes and compare single- and double-buffered designs using identical memory timing.
