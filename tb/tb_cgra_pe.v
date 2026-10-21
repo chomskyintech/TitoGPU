@@ -10,7 +10,11 @@ module tb_cgra_pe;
     reg [31:0] src_a;
     reg [31:0] src_b;
     wire [31:0] result;
-    integer checks;\n    integer i;\n    integer seed;\n    reg [3:0] random_op;\n    reg [31:0] random_a, random_b;
+    integer checks;
+    integer i;
+    integer seed;
+    reg [3:0] random_op;
+    reg [31:0] random_a, random_b;
 
     localparam OP_NOP   = 4'h0;
     localparam OP_ADD   = 4'h1;
@@ -111,7 +115,8 @@ module tb_cgra_pe;
         op = OP_NOP;
         src_a = 0;
         src_b = 0;
-        checks = 0;\n        seed = 32'h54_47_50_55;
+        checks = 0;
+        seed = 32'h54_47_50_55;
 
         repeat (2) @(negedge clk);
         resetb = 1;
@@ -153,6 +158,16 @@ module tb_cgra_pe;
         clear = 1'b0;
 
         check_op(OP_ADD, 32'd20, 32'd22, 32'd42);
+
+        // Deterministic pseudo-random differential checks against the reference model.
+        for (i = 0; i < 200; i = i + 1) begin
+            random_op = (i % 12) + 1;
+            random_a = $random(seed);
+            random_b = $random(seed);
+            check_op(random_op, random_a, random_b,
+                     reference_result(random_op, random_a, random_b));
+        end
+
         $display("PASS: CGRA PE unit tests (%0d checks)", checks);
         $finish;
     end
