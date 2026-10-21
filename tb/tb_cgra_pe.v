@@ -90,7 +90,7 @@ module tb_cgra_pe;
         check_op(OP_SUB, 32'd7, 32'd9, 32'hffff_fffe);
         check_op(OP_ADD, 32'hffff_ffff, 32'd1, 32'd0);
         check_op(OP_MUL8, 32'd12, 32'd10, 32'd120);
-        check_op(OP_MUL8, 32'hffff_fff0, 32'd3, 32'hffff_ffe0); // -16 * 3
+        check_op(OP_MUL8, 32'hffff_fff0, 32'd3, 32'hffff_ffd0); // -16 * 3
         check_op(OP_MUL8, 32'hffff_ff80, 32'd2, 32'hffff_ff00); // -128 * 2
         check_op(OP_MUL8, 32'd127, 32'hffff_ff80, 32'hffff_c080); // 127 * -128
         check_op(OP_AND, 32'hf0f0_aaaa, 32'h0ff0_5555, 32'h00f0_0000);
