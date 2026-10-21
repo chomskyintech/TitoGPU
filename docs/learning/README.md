@@ -99,3 +99,24 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 09 — End-to-End AXI Read Integration
 
 [Open the lesson](09-axi4-integration.md). Learn how the AXI adapter, double-buffered tile scheduler, and result reference test work together.
+
+
+## Lesson 10 — AXI Data-Width Conversion
+
+[Open the lesson](10-axi-width-conversion.md). Learn how 32-bit AXI read beats are unpacked into ordered 8-bit INT8 operands, including backpressure and RLAST validation.
+
+## Lesson 11 — AXI4 Write Controller
+
+[Open the lesson](11-axi4-write-controller.md). Learn AW/W/B handshakes, write buffering, response handling, and burst splitting.
+
+## Lesson 12 — Synchronous Result Streaming
+
+[Open the lesson](12-result-stream-writeback.md). Learn how synchronous result-memory reads are converted into a stall-safe stream for AXI writeback.
+
+## Lesson 13 — Integrated AXI Writeback
+
+[Open the lesson](13-integrated-axi-writeback.md). Follow the actual accelerator result path into external memory and understand arbitration with host result reads.
+
+## Lesson 14 — Legal AXI4 Burst Splitting
+
+[Open the lesson](14-axi4-burst-splitting.md). Calculate legal burst sizes at 4-KiB boundaries and trace the 64 + 192 beat regression.
