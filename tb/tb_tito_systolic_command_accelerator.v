@@ -132,7 +132,51 @@ module tb_tito_systolic_command_accelerator;
             $fatal(1);
         end
 
-        $display("PASS: command interface and result writeback (%0d results, %0d cycles)",
+        // Launch another operation, then assert reset while it is computing.
+        // Reset must abort the in-flight command and allow a clean restart.
+        @(negedge clk); cmd_start=1;
+        @(negedge clk); cmd_start=0;
+        repeat (4) @(negedge clk);
+        if (!busy) begin
+            $display("FAIL: expected busy before mid-compute reset");
+            $fatal(1);
+        end
+        resetb=0;
+        #1;
+        if (busy || done || result_rd_valid) begin
+            $display("FAIL: reset did not clear command status");
+            $fatal(1);
+        end
+        repeat (2) @(negedge clk);
+        resetb=1;
+
+        // Restart from the retained operand memories and verify recovery.
+        @(negedge clk); cmd_start=1;
+        @(negedge clk); cmd_start=0;
+        cycles=0;
+        while (!done && cycles < 300) begin
+            @(negedge clk);
+            cycles=cycles+1;
+        end
+        if (!done || busy) begin
+            $display("FAIL: accelerator did not recover after reset");
+            $fatal(1);
+        end
+        for (i = 0; i < N; i = i + 1)
+            for (j = 0; j < N; j = j + 1) begin
+                @(negedge clk);
+                result_rd_en=1; result_rd_addr=i*N+j;
+                @(negedge clk);
+                if (!result_rd_valid || $signed(result_rd_data) !== expected[i][j]) begin
+                    $display("FAIL after reset result[%0d,%0d]: got %0d expected %0d",
+                        i, j, $signed(result_rd_data), expected[i][j]);
+                    $fatal(1);
+                end
+                checks=checks+1;
+            end
+        @(negedge clk); result_rd_en=0;
+
+        $display("PASS: command interface, reset recovery, and result writeback (%0d results, %0d cycles)",
             checks, cycles);
         $finish;
     end
