@@ -2,7 +2,7 @@
 
 ## Status
 
-Standalone RTL implemented and verified. The adapter has passed the full simulation suite and generic Yosys synthesis in [RTL regression run 39542510652](https://github.com/chomskyintech/TitoGPU/actions/runs/39542510652). It is not yet instantiated in the top-level accelerator wrapper.
+RTL implemented, unit-tested, and integrated into the top-level wrapper. The full simulation suite and generic Yosys synthesis passed in [RTL regression run 39542794145](https://github.com/chomskyintech/TitoGPU/actions/runs/39542794145).
 
 ## Purpose
 
