@@ -255,3 +255,14 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - CI status: pending. Do not publish a cycle comparison until the sweep passes and the logs have been reviewed.
 - Limits: matched RTL simulation provides a controlled cycle comparison only. It is not physical performance, area, timing, power, or performance-per-watt evidence.
 - Study guide: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
+
+
+## 2026-10-21 — Matched single-/double-buffer latency sweep passes CI
+
+- Verified test/Makefile commit: [`35e4839`](https://github.com/chomskyintech/TitoGPU/commit/35e4839622a6a9ed5468b6e3ac6902a226bc22d3).
+- CI: [run #159](https://github.com/chomskyintech/TitoGPU/actions/runs/39539323934) — **PASS** for full simulation and generic synthesis.
+- Both designs ran the same two-tile workload at `MEM_GAP=0`, `2`, and `5`, with matching synthetic response pacing and request-ready schedule. All 16 outputs matched the reference and early-last fault injection was detected in each mode.
+- Measured operation cycles (single-buffered → double-buffered): gap 0: 157 → 123 (34 fewer, 21.7%); gap 2: 347 → 311 (36 fewer, 10.4%); gap 5: 539 → 503 (36 fewer, 6.7%).
+- Interpretation: the cycle reduction is nearly constant in absolute terms in these runs, while the percentage improvement decreases as memory latency dominates. These are controlled RTL simulation counts, not silicon performance, power, area, timing, or performance-per-watt results.
+- The additional `prefetch_beats_while_compute_busy` counter was added after this run and is being verified in a later CI run; it should distinguish request acceptance overlap from actual response-beat overlap.
+- Study guide: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
