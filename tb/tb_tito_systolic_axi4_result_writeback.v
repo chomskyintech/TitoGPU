@@ -131,6 +131,7 @@ module tb_tito_systolic_axi4_result_writeback;
         @(negedge clk); bresp=0; bvalid=1;
         tick();
         @(negedge clk); bvalid=0;
+        repeat(2) tick();
         if (!done || error || busy || !b_handshake_seen)
             $fatal(1,"FAIL: writeback completion status incorrect");
         $display("PASS: synchronous result reads written byte-for-byte through AXI W channel");
