@@ -47,7 +47,7 @@ This remains prototype RTL, not a production GPU or a completed SoC integration.
 - [Lesson 01: Command interface, Git, and CI](docs/learning/01-command-interface-git-ci.md)
 - [Lesson 02: K-dimension tiling](docs/learning/02-k-dimension-tiling.md)
 - [Lesson 03: Ready/valid handshakes](docs/learning/03-ready-valid-handshake.md)
-- [Lesson 04: Streaming bursts and backpressure](docs/learning/04-streaming-bursts.md)
+- [Lesson 04: Streaming bursts and backpressure](docs/learning/04-streaming-bursts.md)\n- [Lesson 05: Autonomous K-tile sequencing](docs/learning/05-autonomous-k-tile-sequencing.md)
 
 ## Run locally
 
