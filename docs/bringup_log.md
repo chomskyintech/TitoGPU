@@ -244,3 +244,14 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - CI status: pending; do not treat this sweep as verified until the workflow completes.
 - Interpretation limits: this is a synthetic latency experiment on the double-buffered design only. It is not a fair comparison with the single-buffered path until both testbenches use identical memory timing, backpressure, workload, and cycle-count boundaries. No physical PPA or performance-per-watt claim is supported.
 - Study guide: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
+
+
+## 2026-10-21 — Matched single-/double-buffer latency sweep added; CI pending
+
+- Branch: `feature/tito-systolic-mac`
+- Both `tb/tb_tito_systolic_dma_reader.v` and `tb/tb_tito_systolic_double_buffered_dma_reader.v` now accept `+MEM_GAP=N` and use matching synthetic response pacing and request-backpressure schedules.
+- `make sim` runs each test at `MEM_GAP=0`, `2`, and `5`. Each case checks the same 2-tile matrix workload, all 16 expected outputs, and early-last fault handling.
+- The single-buffered test reports `single_buffer_total_cycles`; the double-buffered test reports its total cycles and overlap/stall counters. Compare only pairs with the same gap setting.
+- CI status: pending. Do not publish a cycle comparison until the sweep passes and the logs have been reviewed.
+- Limits: matched RTL simulation provides a controlled cycle comparison only. It is not physical performance, area, timing, power, or performance-per-watt evidence.
+- Study guide: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
