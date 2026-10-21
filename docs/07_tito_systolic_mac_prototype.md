@@ -42,7 +42,7 @@ A second case includes negative INT8 operands to check signed multiplication and
 
 The `make sim` regression runs CGRA reference-model/controller/integration tests, N=2 and N=4 MAC tests, the preloaded scheduler test, the original scratchpad integration test, the banked streaming test, and the command-wrapper end-to-end test. The command-wrapper test loads signed 4×4 matrices, starts a command, waits for writeback completion, reads all 16 results through the synchronous read port, and compares each against an independently calculated integer reference.
 
-The banked streaming implementation passed the complete simulation and generic synthesis in [GitHub Actions run #39532837926](https://github.com/chomskyintech/TitoGPU/actions/runs/39532837926). The command-wrapper milestone has its own CI run triggered by the new regression; check the pull request's latest Actions status before treating this latest addition as verified.
+The banked streaming implementation passed the complete simulation and generic synthesis in [GitHub Actions run #39532837926](https://github.com/chomskyintech/TitoGPU/actions/runs/39532837926). The command-wrapper regression and signed INT8 endpoint test also passed in [GitHub Actions run #74](https://github.com/chomskyintech/TitoGPU/actions/runs/39535645810), tested at commit [`353b709f`](https://github.com/chomskyintech/TitoGPU/commit/353b709f50935cea812334b8b1b153d2dda1ae7f).
 
 ## Current limitations
 
@@ -57,8 +57,8 @@ The banked streaming implementation passed the complete simulation and generic s
 
 ## Next milestones
 
-1. Define and test reset/restart behavior, accumulator overflow, result retention, and memory collision semantics more comprehensively.
-2. Add reusable K-dimension tiling and DMA-compatible burst interfaces for matrices larger than the local tile.
+1. **K-dimension tiling:** define how partial sums are preserved across K tiles, including first/continuation/final tile behavior and signed accumulator semantics; verify against a reference model.
+2. Define a DMA-compatible burst interface and multi-tile scheduling for matrices larger than local storage.
 3. Add quantization/scaling and the dataflow required for CNN convolution and transformer GEMM/attention workloads.
 4. Build reproducible CNN/transformer microbenchmarks and compare throughput and data movement against the CGRA baseline.
 5. Only then estimate area, timing, and power with a defined target technology, SRAM macro, and physical-design flow.
