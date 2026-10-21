@@ -50,9 +50,18 @@ module tb_tito_systolic_tiled_burst_accelerator;
             burst_base_addr=0;
             burst_len=length;
             burst_start_valid=1;
-            while (!burst_start_ready) @(negedge clk);
-            @(negedge clk);
-            burst_start_valid=0;
+            // Sample ready at the active clock edge. Checking immediately
+            // after changing burst_bank can race the combinational ready path.
+            begin : wait_for_descriptor
+                forever begin
+                    @(posedge clk);
+                    if (burst_start_ready) begin
+                        @(negedge clk);
+                        burst_start_valid=0;
+                        disable wait_for_descriptor;
+                    end
+                end
+            end
         end
     endtask
 
