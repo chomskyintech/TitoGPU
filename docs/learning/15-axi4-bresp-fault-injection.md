@@ -45,12 +45,13 @@ make synth-axi
 make synth-writeback
 ```
 
-The integrated first- and second-burst SLVERR cases, the full simulation suite, and generic Yosys synthesis passed in [RTL regression run 39545023764](https://github.com/chomskyintech/TitoGPU/actions/runs/39545023764).
+The integrated first- and second-burst SLVERR cases, the no-reset relaunch recovery check, the full simulation suite, and generic Yosys synthesis passed in [RTL regression run 39545166522](https://github.com/chomskyintech/TitoGPU/actions/runs/39545166522).
 
 Look for these messages in the regression output:
 
 - `PASS: first-burst SLVERR terminates integrated writeback without issuing next AW`
 - `PASS: second-burst SLVERR reports failure and suppresses done`
+- `PASS: writeback can be relaunched successfully after BRESP error without reset`
 
 ## Exercises — predict before reading the answer
 
@@ -70,6 +71,6 @@ Look for these messages in the regression output:
 
 ## Limitations and next step
 
-The regression injects functional AXI response errors in simulation. It does not cover real interconnect behavior, timeouts, retries, abort/restart policy, or physical PPA. The current contract reports an error and requires the software/system layer to decide whether to retry or reset; automatic retry is not implemented.
+The regression injects functional AXI response errors in simulation and confirms that a fresh writeback command can succeed after either tested failure without resetting the accelerator. It does not cover real interconnect behavior, timeouts, automatic retries, abort, or physical PPA.
 
-Next, define and verify the software-visible recovery contract: whether a failed writeback can be relaunched without resetting the accelerator, which status fields are sticky or pulse-based, and how software acknowledges a completed or failed operation.
+Next, formalize the software-visible status contract: identify which status fields are pulse-based versus sticky, define how the caller acknowledges completion/failure, and test DECERR and response-channel stalls.
