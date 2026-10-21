@@ -24,6 +24,7 @@ module tb_tito_systolic_dma_reader;
     wire [ACC_W-1:0] result_rd_data;
     wire result_rd_valid;
 
+    reg bad_last_mode;
     reg mem_active;
     reg [ADDR_W-1:0] mem_addr_q;
     reg [BURST_LEN_W-1:0] mem_len_q, mem_index;
@@ -96,7 +97,7 @@ module tb_tito_systolic_dma_reader;
             if (mem_active && !rd_data_valid) begin
                 mem_value = operand_value(mem_addr_q,mem_index);
                 rd_data <= mem_value[DATA_W-1:0];
-                rd_data_last <= (mem_index == mem_len_q-1);
+                rd_data_last <= bad_last_mode ? (mem_index == 2) : (mem_index == mem_len_q-1);
                 rd_data_valid <= 1'b1;
             end
             if (rd_data_valid && rd_data_ready) begin
@@ -115,7 +116,7 @@ module tb_tito_systolic_dma_reader;
         clk=0; resetb=0;
         op_start=0; a_base_addr=100; b_base_addr=200; op_tile_count=2;
         rd_req_ready=0; rd_data_valid=0; rd_data=0; rd_data_last=0; rd_error=0;
-        result_rd_en=0; result_rd_addr=0; cycles=0; checks=0; request_count=0;
+        result_rd_en=0; result_rd_addr=0; cycles=0; checks=0; request_count=0; bad_last_mode=0;
         repeat(3) @(negedge clk);
         resetb=1;
 
@@ -168,6 +169,24 @@ module tb_tito_systolic_dma_reader;
         @(negedge clk); result_rd_en=0;
         $display("PASS: DMA read frontend, 4 backpressured read requests, and %0d matrix outputs (%0d cycles)",
             checks,cycles);
+
+        // Reset, then inject an early last marker. The frontend must fail closed.
+        @(negedge clk); resetb=0; op_start=0;
+        repeat(3) @(negedge clk);
+        bad_last_mode=1;
+        resetb=1;
+        @(negedge clk); op_start=1;
+        @(negedge clk); op_start=0;
+        cycles=0;
+        while (!op_error && cycles<500) begin
+            @(negedge clk);
+            cycles=cycles+1;
+        end
+        if (!op_error || op_done || op_busy) begin
+            $display("FAIL: malformed last marker was not rejected cleanly");
+            $fatal(1);
+        end
+        $display("PASS: early response-last fault detected and local core held in reset");
         $finish;
     end
 
