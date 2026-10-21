@@ -69,7 +69,8 @@ module tito_systolic_axi4_write_adapter #(
     assign m_axi_awburst=2'b01;
     assign m_axi_awvalid=active && !aw_done;
     assign aw_handshake=m_axi_awvalid && m_axi_awready;
-    assign stream_ready=active && (total_remaining!=0) && !data_q_valid && !error;
+    assign stream_ready=active && (total_remaining!=0) && (burst_remaining!=0) &&
+                        !data_q_valid && !error;
     assign stream_handshake=stream_valid && stream_ready;
     assign expected_stream_last=(total_remaining==1);
     assign m_axi_wdata=data_q;
