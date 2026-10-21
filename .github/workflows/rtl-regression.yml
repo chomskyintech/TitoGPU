@@ -20,3 +20,5 @@ jobs:
         run: make sim
       - name: Synthesize AXI-connected accelerator
         run: make synth-axi
+      - name: Synthesize AXI write adapter
+        run: make synth-writeback
