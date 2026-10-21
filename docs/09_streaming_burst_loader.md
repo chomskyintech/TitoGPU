@@ -35,10 +35,12 @@ The loader accepts one data beat per clock when ready is asserted. Current integ
 
 The testbench `tb/tb_tito_systolic_burst_command_accelerator.v`:
 1. Checks that a zero-length descriptor raises `burst_error`.
-2. Loads the A tile in a 16-beat burst.
-3. Loads the B tile in a separate 16-beat burst.
-4. Runs the accelerator command.
-5. Reads and checks all 16 matrix outputs against an independent integer reference.
+2. Checks that data-valid without an active burst is not accepted.
+3. Resets midway through a partial burst and verifies the interface returns to idle.
+4. Loads the A tile in a 16-beat burst.
+5. Loads the B tile in a separate 16-beat burst.
+6. Runs the accelerator command.
+7. Reads and checks all 16 matrix outputs against an independent integer reference.
 
 The test is part of `make sim`; `make synth` also includes a generic Yosys synthesis target for the integrated burst wrapper. Generic synthesis is a structural sanity check, not a technology-specific PPA result.
 
