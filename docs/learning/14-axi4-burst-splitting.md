@@ -80,4 +80,4 @@ The full simulation and both synthesis targets passed in [RTL regression run 395
 
 This is a simulation-verified restricted AXI4 write master: one outstanding burst at a time, full-width aligned beats, at most 256 total words per command, fixed `AWID=0`, and no retries, timeout, abort, or multiple outstanding transactions. Generic Yosys synthesis does not establish physical timing, area, power, or performance per watt.
 
-The next verification milestone is systematic BRESP fault injection across both the first and later bursts, including confirming that a failed intermediate burst terminates the command without issuing subsequent AW requests.
+The follow-on milestone is covered in [Lesson 15 — AXI B-response fault injection](15-axi4-bresp-fault-injection.md): inject SLVERR on both the first and second burst and confirm failure propagation and completion suppression.
