@@ -120,3 +120,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 14 — Legal AXI4 Burst Splitting
 
 [Open the lesson](14-axi4-burst-splitting.md). Calculate legal burst sizes at 4-KiB boundaries and trace the 64 + 192 beat regression.
+
+
+## Lesson 15 — AXI B-Response Fault Injection
+
+[Open the lesson](15-axi4-bresp-fault-injection.md). Learn how first- and second-burst SLVERR responses propagate to integrated writeback status and prevent false success.
