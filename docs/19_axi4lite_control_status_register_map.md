@@ -39,7 +39,7 @@ All registers are 32-bit words, byte addressed, and must be accessed at 4-byte-a
 
 ## Verification evidence
 
-The full `make sim` regression and generic synthesis targets `make synth-axi`, `make synth-writeback`, and `make synth-control` passed in [RTL regression run 39546241266](https://github.com/chomskyintech/TitoGPU/actions/runs/39546241266). The AXI-Lite-specific test checks independent AW/W ordering, register read/write behavior, byte strobes, busy/combined-start rejection, status W1C semantics, read backpressure, and DECERR responses.
+The standalone register-bank regression and synthesis passed in [RTL regression run 39546241266](https://github.com/chomskyintech/TitoGPU/actions/runs/39546241266). After integration, the full simulation regression and generic synthesis of the software-facing system also passed in [run 39546773074](https://github.com/chomskyintech/TitoGPU/actions/runs/39546773074). The AXI-Lite-specific tests cover independent AW/W ordering, register read/write behavior, byte strobes, busy/combined-start rejection, sticky status and W1C, read backpressure, DECERR responses, and end-to-end result writeback.
 
 ## Limitations and integration boundary
 
