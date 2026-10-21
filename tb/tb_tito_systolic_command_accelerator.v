@@ -132,6 +132,44 @@ module tb_tito_systolic_command_accelerator;
             $fatal(1);
         end
 
+        // A start pulse during WRITEBACK must be ignored. It must not queue
+        // a second operation after the current command completes.
+        @(negedge clk); cmd_start=1;
+        @(negedge clk); cmd_start=0;
+        cycles=0;
+        while ((dut.state != 2'd2) && cycles < 300) begin
+            @(negedge clk);
+            cycles=cycles+1;
+        end
+        if (dut.state != 2'd2) begin
+            $display("FAIL: command never reached WRITEBACK for busy-start test");
+            $fatal(1);
+        end
+        // Avoid the final writeback cycle so the pulse is unambiguously busy.
+        if (dut.writeback_idx == N*N-1) @(negedge clk);
+        cmd_start=1;
+        @(negedge clk); cmd_start=0;
+        if (!busy) begin
+            $display("FAIL: busy dropped after start pulse during WRITEBACK");
+            $fatal(1);
+        end
+        cycles=0;
+        while (!done && cycles < 300) begin
+            @(negedge clk);
+            cycles=cycles+1;
+        end
+        if (!done || busy) begin
+            $display("FAIL: writeback command did not complete cleanly");
+            $fatal(1);
+        end
+        repeat (3) begin
+            @(negedge clk);
+            if (busy || done) begin
+                $display("FAIL: start pulse during WRITEBACK queued an unintended command");
+                $fatal(1);
+            end
+        end
+
         // Launch another operation, then assert reset while it is computing.
         // Reset must abort the in-flight command and allow a clean restart.
         @(negedge clk); cmd_start=1;
