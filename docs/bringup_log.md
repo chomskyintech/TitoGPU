@@ -83,3 +83,17 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Generic synthesis: **PASS** — default 4×4 systolic MAC module reported 18,623 generic mapped cells; existing CGRA reported 19,673. These are separate generic netlists, not comparable silicon-area estimates.
 - Logs/artifacts: [GitHub Actions run #39528644736](https://github.com/chomskyintech/TitoGPU/actions/runs/39528644736)
 - Limitations: the testbench exercises N=2, while synthesis uses the default N=4. The tile is not connected to the top-level accelerator and has no SRAM/DMA, quantization pipeline, valid/ready backpressure, or PPA measurements. The current stream scheduler is demonstrated in the testbench, not implemented as a hardware controller.
+
+
+## 2026-10-21 — N=4 systolic MAC reference regression passes
+
+- Tested commit: `7721fd43a37a4aa6a77db55e1e819a04208fc671`
+- Tool and version: Icarus Verilog 12.0; Yosys 0.33
+- Command: `make sim`; `make synth` (GitHub Actions)
+- N=4 testbench: **PASS — 32 PE/output comparisons** across two signed 4×4 matrix-multiplication cases, checked against an independently calculated integer reference.
+- Bubble handling: **PASS** — selected reduction terms are suppressed consistently in both operand streams and excluded from the expected result.
+- Control checks: **PASS** — disabling the array prevents accumulation; asserting clear removes accumulated data and in-flight valid tokens.
+- Existing CGRA and N=2 systolic regressions: **PASS**.
+- Generic synthesis: **PASS**.
+- Logs/artifacts: [GitHub Actions run #39532195132](https://github.com/chomskyintech/TitoGPU/actions/runs/39532195132)
+- Limitations: this is functional RTL verification only. It does not measure performance/Watt or establish physical area/timing. The scheduler remains in the testbench; SRAM, DMA, backpressure, and top-level integration remain future work.
