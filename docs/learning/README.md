@@ -74,3 +74,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 04 — Streaming Bursts and Backpressure
 
 [Open the lesson](04-streaming-bursts.md). Learn descriptor handshakes, automatic address increments, error handling, and the distinction between a streaming loader and a full DMA engine.
+
+
+## Lesson 05 — Autonomous K-Tile Sequencing
+
+[Open the lesson](05-autonomous-k-tile-sequencing.md). Learn how the controller coordinates A/B burst completion, launches compute, and accumulates multi-tile results.
