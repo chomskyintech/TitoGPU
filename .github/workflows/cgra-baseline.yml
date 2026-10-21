@@ -1,0 +1,57 @@
+name: TitoRV CGRA baseline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out TitoGPU
+        uses: actions/checkout@v4
+
+      - name: Check out TitoRV CGRA source
+        uses: actions/checkout@v4
+        with:
+          repository: chomskyintech/TitoRV
+          ref: cgra-standalone
+          path: TitoRV
+
+      - name: Install simulation and synthesis tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes iverilog yosys
+
+      - name: Record tool versions
+        run: |
+          iverilog -V 2>&1 | head -n 2
+          yosys -V
+
+      - name: Run CGRA directed simulation
+        working-directory: TitoRV/cgra_standalone
+        run: |
+          set -o pipefail
+          make sim 2>&1 | tee ../../cgra-sim.log
+
+      - name: Run generic Yosys synthesis
+        working-directory: TitoRV/cgra_standalone
+        run: |
+          set -o pipefail
+          make synth 2>&1 | tee ../../cgra-synth.log
+
+      - name: Upload baseline logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cgra-baseline-logs
+          path: |
+            cgra-sim.log
+            cgra-synth.log
+          if-no-files-found: warn
