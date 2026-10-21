@@ -2,7 +2,7 @@
 
 ## Status
 
-Design contract only. No RTL implementation or passing write-channel regression is claimed by this document.
+The standalone single-burst controller is implemented in `rtl/tito_systolic_axi4_write_adapter.v`. Its unit regression and generic Yosys synthesis passed in [RTL regression run 39542140516](https://github.com/chomskyintech/TitoGPU/actions/runs/39542140516). The controller is **not yet integrated** with the accelerator's result storage; end-to-end writeback remains a separate milestone.
 
 ## Goal
 
@@ -38,6 +38,12 @@ The wrapper must not silently assume the result producer can be stalled unless t
 For bus width `DATA_W`, bytes per beat are `DATA_W / 8`. A command provides a byte base address and a beat count. Each burst transfers at most `MAX_BURST_BEATS` beats and must remain within one 4-KiB region. After a successful burst response, advance the address by the number of transferred beats multiplied by bytes per beat. Do not advance on an error response.
 
 The first implementation should either reject unsupported unaligned base addresses and boundary-crossing commands before asserting `AWVALID`, or split a transfer into legal bursts. Prefer explicit rejection for the initial testable milestone; implement splitting as a later enhancement.
+
+## Implemented interface details
+
+The current module uses `cmd_valid/cmd_ready`, a `cmd_addr` byte address, and `cmd_beats` count. The result stream is one full-width bus beat per handshake (`stream_valid/stream_ready`, `stream_data`, `stream_last`). The default bus is 32 bits, so every stream item is one 32-bit write beat and `WSTRB=4'b1111`. The controller accepts one burst only, emits `AWLEN=cmd_beats-1`, and raises `done` only after an OKAY B-channel handshake. Error codes currently distinguish zero length, unaligned address, over-256 beat count, 4-KiB crossing, stream-last mismatch, and non-OKAY BRESP. A stream-last mismatch is fatal and requires reset/system quiescence because an AW handshake may already have occurred.
+
+The first unit regression verifies the listed channel and command cases. It does not prove integration with the compute result memory, nor does it test a real AXI interconnect or physical PPA.
 
 ## Required verification
 
