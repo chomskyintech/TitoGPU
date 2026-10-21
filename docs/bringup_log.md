@@ -136,3 +136,12 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Full `make synth`: **PASS** in GitHub Actions, including generic synthesis of the new streaming accelerator.
 - Logs/artifacts: [GitHub Actions run #39532837926](https://github.com/chomskyintech/TitoGPU/actions/runs/39532837926)
 - Limitations: the banked memories are synthesizable register-array models, not compiled SRAM macros; the shared host write port loads one element per cycle; no DMA, multi-tile tiling, output-memory writeback, quantization, CNN/transformer workload benchmark, or physical PPA flow is present.
+
+## 2026-10-21 — Command interface and result-memory writeback added
+
+- Branch: `feature/tito-systolic-mac`
+- Added `rtl/tito_systolic_command_accelerator.v`: one-cycle command start, busy/done status, host writes gated while busy, serialized N×N result writeback, and synchronous result readback with a valid pulse.
+- Added `tb/tb_tito_systolic_command_accelerator.v`: loads signed 4×4 matrices, starts a command, waits for completion, reads all 16 result addresses, and checks each against an independent integer reference.
+- Updated `Makefile`: command-wrapper simulation added to `make sim`; generic synthesis added to `make synth`.
+- CI status: pending verification of this milestone. Do not mark it passed until the new end-to-end test and generic synthesis complete successfully.
+- Limitations: host interface is plain RTL signals, not a standard memory-mapped bus. Result bank is a behavioral register array, not SRAM. No DMA, multi-tile tiling, quantization, CNN/transformer benchmarks, or physical PPA yet.
