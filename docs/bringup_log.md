@@ -168,3 +168,14 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Test case: signed INT8 matrix multiplication with `K_TOTAL=9`, using three `K_TILE=4` commands and zero-padding for the final tile. The test reads back and compares all 16 output elements against an independently computed reference.
 - Follow-up hardening: commit [`0087867`](https://github.com/chomskyintech/TitoGPU/commit/008786722943506381754ec95ca46c82eebe7f85) repeats the same operation without reset to verify first-tile replace mode prevents stale result accumulation. Its CI run [#85](https://github.com/chomskyintech/TitoGPU/actions/runs/39536278996) was queued at the time this entry was written; do not treat that added check as passed until the run completes successfully.
 - Scope: this verifies host-driven partial-sum accumulation, not an autonomous K-tile sequencer, DMA, memory bandwidth, physical PPA, or CNN/transformer performance.
+
+## 2026-10-21 — Streaming burst tile loader passes simulation and generic synthesis
+
+- Branch: `feature/tito-systolic-mac`
+- Verified implementation commit: [`5452e56`](https://github.com/chomskyintech/TitoGPU/commit/5452e56d1dab159862301556b0575dffc1ddddfe)
+- CI: [run #100](https://github.com/chomskyintech/TitoGPU/actions/runs/39536570383) — **PASS** for both the complete simulation target and generic Yosys synthesis.
+- New RTL: `rtl/tito_systolic_burst_command_accelerator.v` accepts a bank/base/length descriptor, then a ready/valid data stream. The loader increments local addresses automatically and reports a one-cycle completion or invalid-descriptor error.
+- End-to-end result: **PASS** — the test rejected a zero-length descriptor, loaded A and B in separate 16-beat bursts, executed matrix multiplication, and compared all 16 outputs against an independent reference.
+- K-tiling hardening: [run #85](https://github.com/chomskyintech/TitoGPU/actions/runs/39536278996) also passed. It repeats the same `K_TOTAL=9` operation without reset to verify the first tile replaces stale results instead of adding to them.
+- Scope/limitations: this is a local scratchpad burst-ingress wrapper, not a complete DMA engine. It does not fetch external memory, generate AXI bursts, overlap transfer and compute, or autonomously schedule K tiles. Yosys results are generic structural synthesis, not physical PPA.
+- Follow-up: implement backpressure/reset tests for the burst stream, then design a real external-memory/DMA backend and double-buffered tile scheduling.
