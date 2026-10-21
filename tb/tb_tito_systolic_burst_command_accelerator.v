@@ -90,6 +90,33 @@ module tb_tito_systolic_burst_command_accelerator;
             $fatal(1);
         end
 
+        // Valid without an active descriptor must not be consumed.
+        @(negedge clk); data_valid=1; data=8'd127;
+        repeat (2) @(negedge clk);
+        if (data_ready) begin
+            $display("FAIL: data_ready asserted without an active burst");
+            $fatal(1);
+        end
+        data_valid=0;
+
+        // Abort a partially transferred burst with reset. The producer must
+        // see ready deasserted afterward and be able to start a fresh burst.
+        start_burst(0,0,4);
+        send_beat(8'd1);
+        send_beat(8'd2);
+        @(negedge clk); resetb=0;
+        repeat (2) @(negedge clk);
+        if (data_ready || burst_done || burst_error || busy) begin
+            $display("FAIL: reset did not abort partial burst cleanly");
+            $fatal(1);
+        end
+        resetb=1;
+        repeat (2) @(negedge clk);
+        if (!burst_start_ready || data_ready) begin
+            $display("FAIL: burst interface did not recover after reset");
+            $fatal(1);
+        end
+
         for (i=0;i<N;i=i+1)
             for (k=0;k<K;k=k+1)
                 a_ref[i][k]=((i*7+k*3)%15)-7;
