@@ -39,7 +39,7 @@ make sim
 make synth-writeback
 ```
 
-The focused regression uses four distinct 32-bit values, including negative-looking bit patterns, and compares the accepted WDATA sequence byte-for-byte with the result-memory contents. It also checks that exactly four result reads occur, no buffer remains occupied after completion, and a 4-KiB-crossing output range is rejected.
+The focused regression uses four distinct 32-bit values, including negative-looking bit patterns, and compares the accepted WDATA sequence byte-for-byte with the result-memory contents. It also checks that exactly four result reads occur, no buffer remains occupied after completion, and an unaligned output base is rejected. Legal 4-KiB splitting is covered by [Lesson 14](14-axi4-burst-splitting.md).
 
 The standalone write controller test covers AW/W stalls, stable payloads, WLAST, delayed B response, BRESP error handling, and invalid command rejection. The latest completed full regression before this lesson was [run 39542510652](https://github.com/chomskyintech/TitoGPU/actions/runs/39542510652); the documentation-only follow-up should also be checked on its own commit.
 
