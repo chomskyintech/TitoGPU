@@ -32,6 +32,8 @@ module tb_tito_systolic_double_buffered_dma_reader;
     integer b_ref [0:1][0:K-1][0:N-1];
     integer expected [0:N-1][0:N-1];
     integer i,j,k,t,checks,cycles,request_count,overlap_seen;
+    integer response_beats, request_backpressure_cycles;
+    integer compute_busy_cycles, compute_idle_cycles, memory_active_cycles;
     integer signed mem_value;
 
     tito_systolic_double_buffered_dma_reader #(
@@ -80,8 +82,12 @@ module tb_tito_systolic_double_buffered_dma_reader;
             rd_data <= 0;
             rd_data_last <= 1'b0;
             request_count <= 0;
+            response_beats <= 0;
+            request_backpressure_cycles <= 0;
         end else begin
             rd_req_ready <= (cycles % 4 != 1);
+            if (rd_req_valid && !rd_req_ready)
+                request_backpressure_cycles <= request_backpressure_cycles + 1;
             if (rd_req_valid && rd_req_ready) begin
                 if (mem_active) begin
                     $display("FAIL: received overlapping read request");
@@ -98,6 +104,7 @@ module tb_tito_systolic_double_buffered_dma_reader;
                 overlap_seen <= 1'b1;
 
             if (rd_data_valid && rd_data_ready) begin
+                response_beats <= response_beats + 1;
                 if (rd_data_last) begin
                     mem_active <= 1'b0;
                     rd_data_valid <= 1'b0;
@@ -146,9 +153,16 @@ module tb_tito_systolic_double_buffered_dma_reader;
         @(negedge clk); op_start=0;
 
         cycles=0;
+        compute_busy_cycles=0; compute_idle_cycles=0; memory_active_cycles=0;
         while (!op_done && !op_error && cycles<3000) begin
             @(negedge clk);
             cycles=cycles+1;
+            if (dut.tiled_core.core_busy)
+                compute_busy_cycles=compute_busy_cycles+1;
+            if (op_busy && !dut.tiled_core.core_busy)
+                compute_idle_cycles=compute_idle_cycles+1;
+            if (mem_active)
+                memory_active_cycles=memory_active_cycles+1;
         end
         if (!op_done || op_error || op_busy) begin
             $display("FAIL: DMA operation status done=%b error=%b busy=%b state=%0d",
@@ -178,6 +192,8 @@ module tb_tito_systolic_double_buffered_dma_reader;
         @(negedge clk); result_rd_en=0;
         $display("PASS: double-buffered DMA frontend overlapped tile reads with compute; 4 read requests, %0d matrix outputs (%0d cycles)",
             checks,cycles);
+        $display("METRICS: compute_busy_cycles=%0d compute_idle_while_operation_busy=%0d memory_active_cycles=%0d response_beats=%0d request_backpressure_cycles=%0d",
+            compute_busy_cycles,compute_idle_cycles,memory_active_cycles,response_beats,request_backpressure_cycles);
 
         // Reset, then inject an early last marker. The frontend must fail closed.
         @(negedge clk); resetb=0; op_start=0;
