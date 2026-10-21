@@ -214,7 +214,7 @@ module tito_systolic_dma_reader #(
                     ST_NEXT_TILE: begin
                         if (local_op_done) begin
                             op_done <= 1'b1;
-                            state <= ST_DONE;
+                            state <= ST_IDLE;
                         end else if (tile_index + 1'b1 < tile_count_q) begin
                             // Wait until the tiled sequencer returns to its load
                             // state, then advance the tile index and start A.
@@ -228,10 +228,9 @@ module tito_systolic_dma_reader #(
                         end
                     end
                     ST_DONE: begin
-                        if (op_start) begin
-                            // Start a fresh operation without requiring reset.
-                            state <= ST_IDLE;
-                        end
+                        // Reserved for compatibility; normal completion returns
+                        // directly to IDLE so the next operation can start cleanly.
+                        state <= ST_IDLE;
                     end
                     ST_ERROR: begin
                         // Fatal transfer/protocol error: reset required to recover.
