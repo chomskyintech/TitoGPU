@@ -229,8 +229,8 @@ module tito_systolic_axi4lite_control #(
 
     initial begin
         if (ADDR_W<32) $error("ADDR_W must be at least 32 bits for the current register map");
-        if (TILE_COUNT_W>32 || TILE_COUNT_W<1)
-            $error("TILE_COUNT_W must be between 1 and 32");
+        if (TILE_COUNT_W!=8)
+            $error("The initial register map uses an 8-bit tile-count field");
     end
 endmodule
 `default_nettype wire
