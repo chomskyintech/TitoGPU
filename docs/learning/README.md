@@ -84,3 +84,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 06 — External-Memory Read Frontend
 
 [Open the lesson](06-external-memory-read-frontend.md). Learn request/response handshakes, word-addressed tile layout, last-beat validation, and the limits of a generic DMA frontend.
+
+
+## Lesson 07 — Double-Buffered Tile Loading
+
+[Open the lesson](07-double-buffered-tile-loading.md). Learn buffer ownership, overlap between compute and memory reads, and verification of ping-pong scheduling.
