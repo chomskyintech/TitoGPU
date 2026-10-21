@@ -17,6 +17,7 @@ module tb_tito_systolic_axi4lite_system;
  reg [7:0] mem [0:4095];
  reg [ADDR_W-1:0] rd_base,wr_base; reg [7:0] rd_len,wr_len,rd_index,wr_index;
  reg rd_active=0,wr_addr_seen=0,wr_resp_pending=0;
+ reg inject_next_bresp_error=0;
  integer i,cycles;
  assign bvalid_m=bvalid_m_q; assign arready_m=arready_m_q; assign rvalid_m=rvalid_m_q;
  assign bresp_m=bresp_m_q; assign rresp_m=rresp_m_q; assign rid=rid_q; assign rdata_m=rdata_m_q; assign rlast=rlast_q;
@@ -66,7 +67,12 @@ module tb_tito_systolic_axi4lite_system;
     if(wlast) begin wr_addr_seen<=0; wr_resp_pending<=1; end
     else wr_index<= (awvalid_m && awready_m) ? 1 : wr_index+1'b1;
    end
-   if(wr_resp_pending && !bvalid_m_q) begin bvalid_m_q<=1; bresp_m_q<=0; wr_resp_pending<=0; end
+   if(wr_resp_pending && !bvalid_m_q) begin
+    bvalid_m_q<=1;
+    if(inject_next_bresp_error) begin bresp_m_q<=2'b10; inject_next_bresp_error<=0; end
+    else bresp_m_q<=0;
+    wr_resp_pending<=0;
+   end
    if(bvalid_m_q && bready_m) bvalid_m_q<=0;
   end
  end
@@ -115,6 +121,25 @@ module tb_tito_systolic_axi4lite_system;
     $fatal(1,"result mismatch at word %0d: got %h%h%h%h",i,mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]);
   end
   $display("PASS: AXI-Lite configured compute and writeback; 16 external-memory results match reference");
+
+  // Inject a one-shot AXI SLVERR on the next write response. Software must see
+  // the latched writeback-error status and the documented error code.
+  axil_write('h04,'h00000200); // clear prior writeback-done latch (STATUS bit 9)
+  inject_next_bresp_error=1;
+  axil_write('h00,2);
+  cycles=0; status=0;
+  while(!status[10] && !status[9] && cycles<5000) begin axil_read('h04,status); cycles=cycles+1; end
+  if(!status[10] || status[9]) $fatal(1,"writeback SLVERR not reflected in STATUS: %h",status);
+  axil_read('h18,status);
+  if(status[3:0]!==4'd6) $fatal(1,"expected BRESP error code 6, got %h",status);
+  $display("PASS: AXI SLVERR is visible through sticky STATUS and ERROR_CODE");
+
+  axil_write('h04,'h00000400); // clear writeback-error latch and error code
+  axil_read('h04,status);
+  if(status[10]) $fatal(1,"writeback error W1C did not clear STATUS");
+  axil_read('h18,status);
+  if(status[3:0]!==0) $fatal(1,"error code did not clear with writeback-error W1C");
+  $display("PASS: software can clear writeback error status and code without reset");
   $finish;
  end
  initial begin #300000; $fatal(1,"timeout"); end
