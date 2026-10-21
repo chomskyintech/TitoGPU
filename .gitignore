@@ -1,0 +1,17 @@
+# Simulator/build output
+build/
+out/
+obj_dir/
+simv
+simv.daidir/
+csrc/
+*.vcd
+*.fst
+*.wlf
+*.vpd
+*.jou
+*.log
+*.pb
+*.wdb
+*.cache/
+.DS_Store
