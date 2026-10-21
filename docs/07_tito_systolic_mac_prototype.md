@@ -22,11 +22,11 @@ The preloaded-matrix `tito_systolic_matmul` scheduler remains as a bring-up refe
 Module: `tito_systolic_command_accelerator`.
 
 - Load A and B through `mem_wr_en`, `mem_wr_bank`, `mem_wr_addr`, and `mem_wr_data`. `mem_wr_bank=0` selects A and `1` selects B. A write is accepted only while the wrapper is idle; the shared port writes one element per cycle.
-- A one-cycle `cmd_start` pulse launches one matrix operation. `busy` stays high through computation and result writeback. Start pulses while busy are ignored.
+- A one-cycle `cmd_start` pulse launches one matrix operation. `busy` stays high through computation and result writeback. Start pulses while busy are ignored. `cmd_accumulate=0` replaces output entries with the current tile's partial sums; `cmd_accumulate=1` adds them to the existing result entries. The mode is latched when the start pulse is accepted.
 - After the compute core finishes, the wrapper copies the N×N accumulator values into a local result register bank, one output per cycle. `done` is a one-cycle pulse after the final result has been written, and `busy` deasserts at the same time.
 - Read results with `result_rd_en` and `result_rd_addr`. `result_rd_data` and `result_rd_valid` are registered; valid is asserted for the cycle in which the requested result is returned. The linear result address is `row*N+column`.
 - Result contents persist until the corresponding address is overwritten by a later completed command. Result reads during writeback are allowed, but reading the exact address being written that cycle has read-during-write ambiguity and should be avoided.
-- The wrapper has no software-visible register bus, command queue, interrupts, DMA, or external memory protocol yet. Its signals are a simple RTL command interface for bring-up.
+- The wrapper has no software-visible register bus, command queue, interrupts, DMA, or external memory protocol yet. Multi-tile K accumulation is host-driven; the host must issue one replace-mode command before accumulate-mode commands. Its signals are a simple RTL command interface for bring-up.
 
 ## Initial verification
 
@@ -58,7 +58,7 @@ The banked streaming implementation passed the complete simulation and generic s
 ## Next milestones
 
 1. **K-dimension tiling:** define how partial sums are preserved across K tiles, including first/continuation/final tile behavior and signed accumulator semantics; verify against a reference model.
-2. Define a DMA-compatible burst interface and multi-tile scheduling for matrices larger than local storage.
+2. Replace the single-element host load port with a DMA-compatible burst interface and add hardware-managed multi-tile scheduling for matrices larger than local storage.
 3. Add quantization/scaling and the dataflow required for CNN convolution and transformer GEMM/attention workloads.
 4. Build reproducible CNN/transformer microbenchmarks and compare throughput and data movement against the CGRA baseline.
 5. Only then estimate area, timing, and power with a defined target technology, SRAM macro, and physical-design flow.
