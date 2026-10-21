@@ -20,6 +20,8 @@ This is a source import, **not yet CPU/SoC integration**. No simulation or synth
 - [Verification plan](docs/06_verification_plan.md)
 - [Decision log](docs/10_decisions_and_tradeoffs.md)
 - [Bring-up log](docs/bringup_log.md)
+- [Hands-on learning guide](docs/learning/README.md)
+- [Lesson 01: Command interface, Git, and CI](docs/learning/01-command-interface-git-ci.md)
 
 ## Run locally
 
