@@ -97,3 +97,16 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Generic synthesis: **PASS**.
 - Logs/artifacts: [GitHub Actions run #39532195132](https://github.com/chomskyintech/TitoGPU/actions/runs/39532195132)
 - Limitations: this is functional RTL verification only. It does not measure performance/Watt or establish physical area/timing. The scheduler remains in the testbench; SRAM, DMA, backpressure, and top-level integration remain future work.
+
+
+## 2026-10-21 — Hardware feed scheduler passes N=4 matmul regression
+
+- Tested commit: `6923e0b451cd64a8a1658187c6c3b9e505363f2d`
+- Tool and version: Icarus Verilog 12.0; Yosys 0.33
+- Commands: `make sim`; `make synth`
+- Added `rtl/tito_systolic_matmul.v`: a basic FSM clears the MAC array, feeds row-major preloaded A/B matrices with the required row/column skew, drains the pipeline, and pulses `done`.
+- Scheduler test: **PASS — all 16 outputs** for a signed N=4, K=4 matrix multiplication against an integer reference model; test also checks `busy` and completion behavior.
+- Existing CGRA tests, N=2 MAC tests, and N=4 MAC reference tests: **PASS**.
+- Generic synthesis of both the standalone MAC and scheduler wrapper: **PASS** in CI.
+- Logs/artifacts: [GitHub Actions run #39532346291](https://github.com/chomskyintech/TitoGPU/actions/runs/39532346291)
+- Limitations: matrices are supplied as wide preloaded input ports; there is no local SRAM, DMA, reusable tile command queue, backpressure, quantization/scaling, or CNN/transformer benchmark yet. Generic synthesis is not a physical PPA result.
