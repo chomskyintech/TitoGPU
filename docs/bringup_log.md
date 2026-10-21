@@ -206,3 +206,18 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Recovery limitation: a malformed response or memory error enters a fatal state; external reset is required. A production design still needs a defined abort/flush protocol and error status codes.
 - Learning material: [Lesson 06 — External-Memory Read Frontend](learning/06-external-memory-read-frontend.md).
 - Next milestone: add double-buffered operand storage and overlap loading tile t+1 with computation of tile t. Specify bank ownership and backpressure before changing the controller.
+
+
+## 2026-10-21 — Double-buffered tile loading passes overlap regression and generic synthesis
+
+- Branch: `feature/tito-systolic-mac`
+- Verified RTL/test commit: [`ce71206`](https://github.com/chomskyintech/TitoGPU/commit/ce71206455cf6f9f02ba3b7ef104d545235602f3)
+- CI: [run #141](https://github.com/chomskyintech/TitoGPU/actions/runs/39538358185) — **PASS** for the complete `make sim` target and `make synth`.
+- New RTL path: separate A/B scratchpads for buffers 0 and 1; a buffer-selectable stream controller; a command wrapper that permits writes only to the inactive buffer during compute/writeback; a ping-pong K-tile controller; and a DMA frontend connected to that path.
+- End-to-end result: **PASS** — two tile pairs, four external read requests, all 16 matrix results matched the independent reference.
+- Overlap evidence: **PASS** — the test asserts that the second tile's read request is accepted while the compute core is busy. Total simulated operation latency fell from 219 cycles in the single-buffered DMA test to 123 cycles in the double-buffered test under these specific mock-memory timing assumptions. This is a testbench result, not a general performance claim.
+- Fault injection: **PASS** — early response-last marker raises an error and holds the local core in reset.
+- Synthesis: generic Yosys synthesis completed. The top-level `tito_systolic_double_buffered_dma_reader` reported 564 cells in its top-level hierarchy summary and 25,064 cells for the flattened generic synthesized design in this run. These counts are tool/configuration dependent and are not physical area or PPA.
+- Limits: one outstanding external read, sequential A/B reads, no AXI/NoC adapter, no SRAM macros, and fatal protocol errors require external reset.
+- Learning material: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
+- Next milestone: add cycle counters and vary compute/memory latency to quantify stall cycles, then implement a bus-specific adapter and workload tests.
