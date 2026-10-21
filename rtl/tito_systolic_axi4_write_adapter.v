@@ -1,4 +1,4 @@
-default_nettype none
+`default_nettype none
 
 // Restricted AXI4 write master with legal burst splitting.
 // One command may contain up to 256 full-width beats. Bursts split at 4 KiB boundaries.
@@ -148,4 +148,4 @@ module tito_systolic_axi4_write_adapter #(
     end
 endmodule
 
-default_nettype wire
+`default_nettype wire
