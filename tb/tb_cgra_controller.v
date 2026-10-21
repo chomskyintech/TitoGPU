@@ -95,7 +95,8 @@ module tb_cgra_controller;
             $display("FAIL run_cycles=0: busy=%b result0=%0d", busy, result0);
             $fatal(1);
         end
-        @(negedge clk);
+        @(posedge clk);
+        #1;
         checks=checks+1;
         if (done !== 1'b0) begin
             $display("FAIL done was not a one-cycle pulse");
