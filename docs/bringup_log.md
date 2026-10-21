@@ -158,3 +158,13 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Logs: [GitHub Actions run #74](https://github.com/chomskyintech/TitoGPU/actions/runs/39535645810); [tested commit](https://github.com/chomskyintech/TitoGPU/commit/353b709f50935cea812334b8b1b153d2dda1ae7f).
 - Limitations: this is functional simulation plus generic synthesis, not formal proof, technology-specific area/timing/power, or a CNN/transformer benchmark. The banked memories are RTL register-array models, not compiled SRAM macros.
 - Next milestone: specify and verify K-dimension tiling, including accumulation across multiple K tiles, output accumulation/reset semantics, boundary conditions, and an independent reference-model test before adding DMA.
+
+## 2026-10-21 — K-dimension tiling regression passes in CI
+
+- Branch: `feature/tito-systolic-mac`
+- Verified commit: `fe993c8937729d451d864f6b49de4735e3ae863b`
+- CI: [run #84](https://github.com/chomskyintech/TitoGPU/actions/runs/39536044752) — **PASS**.
+- The complete `make sim` target and generic Yosys synthesis completed successfully with the first K-dimension tiling regression included.
+- Test case: signed INT8 matrix multiplication with `K_TOTAL=9`, using three `K_TILE=4` commands and zero-padding for the final tile. The test reads back and compares all 16 output elements against an independently computed reference.
+- Follow-up hardening: commit [`0087867`](https://github.com/chomskyintech/TitoGPU/commit/008786722943506381754ec95ca46c82eebe7f85) repeats the same operation without reset to verify first-tile replace mode prevents stale result accumulation. Its CI run [#85](https://github.com/chomskyintech/TitoGPU/actions/runs/39536278996) was queued at the time this entry was written; do not treat that added check as passed until the run completes successfully.
+- Scope: this verifies host-driven partial-sum accumulation, not an autonomous K-tile sequencer, DMA, memory bandwidth, physical PPA, or CNN/transformer performance.
