@@ -52,7 +52,7 @@ make sim
 make synth-control
 ```
 
-The testbench checks independent AW/W order, byte-strobe writes, register readback, start pulse counts, rejection while busy, sticky event capture, W1C clearing, read-response stability under backpressure, and DECERR responses. Verify the latest CI result before treating this milestone as passed.
+The testbench checks independent AW/W order, byte-strobe writes, register readback, start pulse counts, rejection while busy and when both start bits are set, sticky event capture, byte-lane-correct W1C clearing, read-response stability under backpressure, and DECERR responses. The full simulation suite plus generic synthesis of the AXI accelerator, write adapter, and register bank passed in [RTL regression run 39546241266](https://github.com/chomskyintech/TitoGPU/actions/runs/39546241266).
 
 ## Exercises — predict before reading the answer
 
