@@ -2,7 +2,7 @@
 
 ## Status
 
-The standalone single-burst controller is implemented in `rtl/tito_systolic_axi4_write_adapter.v`. Its unit regression and generic Yosys synthesis passed in [RTL regression run 39542140516](https://github.com/chomskyintech/TitoGPU/actions/runs/39542140516). The controller is **not yet integrated** with the accelerator's result storage; end-to-end writeback remains a separate milestone.
+The single-burst controller and synchronous result-stream adapter are implemented in `rtl/tito_systolic_axi4_write_adapter.v` and `rtl/tito_systolic_axi4_result_writeback.v`. The full simulation suite and generic Yosys synthesis of the AXI-connected accelerator plus writeback path passed in [RTL regression run 39542510652](https://github.com/chomskyintech/TitoGPU/actions/runs/39542510652). The result adapter has been verified against a synchronous mock result memory and AXI write-memory model. It is **not yet integrated** into the main accelerator wrapper; end-to-end writeback from actual computed result memory remains a separate milestone.
 
 ## Goal
 
@@ -41,9 +41,9 @@ The first implementation should either reject unsupported unaligned base address
 
 ## Implemented interface details
 
-The current module uses `cmd_valid/cmd_ready`, a `cmd_addr` byte address, and `cmd_beats` count. The result stream is one full-width bus beat per handshake (`stream_valid/stream_ready`, `stream_data`, `stream_last`). The default bus is 32 bits, so every stream item is one 32-bit write beat and `WSTRB=4'b1111`. The controller accepts one burst only, emits `AWLEN=cmd_beats-1`, and raises `done` only after an OKAY B-channel handshake. Error codes currently distinguish zero length, unaligned address, over-256 beat count, 4-KiB crossing, stream-last mismatch, and non-OKAY BRESP. A stream-last mismatch is fatal and requires reset/system quiescence because an AW handshake may already have occurred.
+The current module drives fixed `AWID=0` and uses `cmd_valid/cmd_ready`, a `cmd_addr` byte address, and `cmd_beats` count. The result stream is one full-width bus beat per handshake (`stream_valid/stream_ready`, `stream_data`, `stream_last`). The default bus is 32 bits, so every stream item is one 32-bit write beat and `WSTRB=4'b1111`. The controller accepts one burst only, emits `AWLEN=cmd_beats-1`, and raises `done` only after an OKAY B-channel handshake. Error codes currently distinguish zero length, unaligned address, over-256 beat count, 4-KiB crossing, stream-last mismatch, and non-OKAY BRESP. A stream-last mismatch is fatal and requires reset/system quiescence because an AW handshake may already have occurred.
 
-The first unit regression verifies the listed channel and command cases. It does not prove integration with the compute result memory, nor does it test a real AXI interconnect or physical PPA.
+The controller unit regression verifies the listed channel and command cases. The result-stream adapter regression models the existing one-cycle synchronous result-read port and verifies that every result word is written once, in order, and that success waits for the B handshake. These are RTL simulation tests; they do not test a real AXI interconnect or physical PPA.
 
 ## Required verification
 
@@ -62,7 +62,7 @@ The first unit regression verifies the listed channel and command cases. It does
 
 1. Implement and unit-test the write adapter/controller independently.
 2. Add the controller to `make sim` and generic synthesis targets.
-3. Integrate a result-stream adapter only after confirming the compute block's result timing and backpressure behavior.
+3. Implement and verify the synchronous result-stream adapter; this is complete as a standalone block. Integrate it into the top-level accelerator wrapper only after adding arbitration between host result reads and writeback reads.
 4. Add an end-to-end memory model and test writeback under channel stalls and injected response errors.
 5. Add a learning lesson after this milestone passes, linking this contract and the RTL/testbench files.
 
