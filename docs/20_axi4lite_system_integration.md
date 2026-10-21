@@ -20,9 +20,9 @@ The done bits are event latches, not the raw one-cycle hardware pulses. A comman
 
 ## Integration test
 
-`tb/tb_tito_systolic_axi4lite_system.v` models byte-addressed external memory and drives the subsystem exclusively through AXI4-Lite for configuration and commands. It loads an identity matrix A and a known matrix B, launches a single-tile matrix multiplication, requests writeback, then checks all 16 32-bit result words against the independent expected matrix. The AXI memory model checks basic burst fields and handles the read/write handshakes.
+`tb/tb_tito_systolic_axi4lite_system.v` models byte-addressed external memory and drives the subsystem exclusively through AXI4-Lite for configuration and commands. It loads an identity matrix A and a known matrix B, launches a single-tile matrix multiplication, requests writeback, then checks all 16 32-bit result words against the independent expected matrix. It then injects a one-shot AXI SLVERR on writeback and checks that STATUS bit 10 and ERROR_CODE value 6 are visible to software, followed by W1C clearing of the error latch/code. The AXI memory model checks basic burst fields and handles the read/write handshakes.
 
-Verified in [GitHub Actions run 39546773074](https://github.com/chomskyintech/TitoGPU/actions/runs/39546652913): the full `make sim` regression passed, including the AXI-Lite-only end-to-end test, and the `make synth-system` generic synthesis target passed.
+Verified in [GitHub Actions run 39547281630](https://github.com/chomskyintech/TitoGPU/actions/runs/39547281630): the full `make sim` regression passed, including end-to-end writeback-error visibility and clearing, and the `make synth-system` generic synthesis target passed.
 
 Run locally:
 
