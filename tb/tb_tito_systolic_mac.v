@@ -99,6 +99,14 @@ module tb_tito_systolic_mac;
         matrix_b[1][0]=7; matrix_b[1][1]=8;
         run_and_check(9, 22, 13, 50);
 
+        // Exercise the signed INT8 endpoints and verify products are sign-extended
+        // before accumulation into the 32-bit result.
+        matrix_a[0][0]=-128; matrix_a[0][1]=-128;
+        matrix_a[1][0]=127;  matrix_a[1][1]=-128;
+        matrix_b[0][0]=-128; matrix_b[0][1]=127;
+        matrix_b[1][0]=127;  matrix_b[1][1]=-128;
+        run_and_check(128, 128, -32512, 32513);
+
         $display("PASS: systolic MAC matrix tests (%0d matrices)", checks);
         $finish;
     end
