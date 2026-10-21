@@ -180,11 +180,16 @@ module tito_systolic_axi4lite_control #(
                             if (write_strb_now[0]) begin
                                 if (write_data_now[1]) op_done_latched<=0;
                                 if (write_data_now[2]) op_error_latched<=0;
-                                if (write_data_now[9]) wb_done_latched<=0;
-                                if (write_data_now[10]) wb_error_latched<=0;
-                                if (write_data_now[31]) command_rejected<=0;
-                                if (write_data_now[10]) last_error_code<=0;
                             end
+                            if (write_strb_now[1]) begin
+                                if (write_data_now[9]) wb_done_latched<=0;
+                                if (write_data_now[10]) begin
+                                    wb_error_latched<=0;
+                                    last_error_code<=0;
+                                end
+                            end
+                            if (write_strb_now[3] && write_data_now[31])
+                                command_rejected<=0;
                         end
                         REG_A_BASE: begin
                             if (write_strb_now[0]) a_base_addr[7:0]<=write_data_now[7:0];
