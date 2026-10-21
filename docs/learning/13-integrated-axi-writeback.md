@@ -68,6 +68,6 @@ The full simulation and generic synthesis passed in [RTL regression run 39542794
 
 The write path supports 32-bit result words and up to 256 words per command. The controller splits a command at 4-KiB boundaries, allows one outstanding burst at a time, and fixes AWID to zero. It has no retries, timeout, abort, cache coherence, partial final beats, or multiple outstanding IDs. The testbench uses a functional memory model, not vendor AXI VIP or a real interconnect.
 
-The next verification task is systematic BRESP fault injection on both the first and later burst, checking that a failed response terminates the command without issuing any further AW request. Physical timing, area, power and performance-per-watt still require implementation and measurement beyond generic Yosys synthesis.
+Integrated BRESP fault injection now covers both failure positions: SLVERR on the first burst must prevent a second AW, while SLVERR on the second burst must suppress successful completion. The full simulation and generic Yosys synthesis passed in [RTL regression run 39545023764](https://github.com/chomskyintech/TitoGPU/actions/runs/39545023764).
 
-See [Lesson 14 — legal AXI4 burst splitting](14-axi4-burst-splitting.md) for the boundary arithmetic, counter roles, and directed 64 + 192 beat regression.
+See [Lesson 14 — legal AXI4 burst splitting](14-axi4-burst-splitting.md) for boundary arithmetic and the 64 + 192 beat regression, and [Lesson 15 — AXI B-response fault injection](15-axi4-bresp-fault-injection.md) for the failure tests. Physical timing, area, power and performance-per-watt still require implementation and measurement beyond generic Yosys synthesis.
