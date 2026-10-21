@@ -36,6 +36,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
     reg write_resp_pending;
     reg fault_test_mode, inject_bresp_error;
     integer fault_bresp_burst;
+    reg [1:0] injected_bresp_code;
 
     wire [ID_W-1:0] m_axi_arid;
     wire [ADDR_W-1:0] m_axi_araddr;
@@ -260,7 +261,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
                     m_axi_bvalid<=1;
                     m_axi_bresp<=((inject_bresp_error && fault_bresp_burst==0 && aw_write_count==1) ||
                                   (inject_bresp_error && fault_bresp_burst==1 && aw_write_count==2))
-                                 ? 2'b10 : 2'b00;
+                                 ? injected_bresp_code : 2'b00;
                     write_resp_pending<=0;
                 end
             end
@@ -281,7 +282,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         a_base_addr=100; b_base_addr=200; op_tile_count=2;
         result_rd_en=0; result_rd_addr=0;
         bad_last_mode=0; gap_cfg=0; cycles=0; checks=0;
-        fault_test_mode=0; inject_bresp_error=0; fault_bresp_burst=0;
+        fault_test_mode=0; inject_bresp_error=0; injected_bresp_code=2'b10; fault_bresp_burst=0; injected_bresp_code=2'b10;
         if (!$value$plusargs("MEM_GAP=%d",gap_cfg)) gap_cfg=0;
         if (gap_cfg < 0) gap_cfg=0;
         repeat(3) @(negedge clk);
@@ -358,7 +359,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         // Inject SLVERR on the first burst of a result write that crosses 4 KiB.
         // The controller must report failure and must not issue the second AW at 0x1000.
         @(negedge clk);
-        fault_test_mode=1; inject_bresp_error=1; fault_bresp_burst=0;
+        fault_test_mode=1; inject_bresp_error=1; fault_bresp_burst=0; injected_bresp_code=2'b10;
         writeback_base_addr=16'h0FFC;
         aw_write_count=0; w_write_count=0;
         writeback_start=1;
@@ -373,12 +374,15 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
             aw_write_count!=1 || w_write_count!=1 || m_axi_awvalid)
             $fatal(1,"FAIL: first-burst SLVERR did not terminate writeback cleanly (err=%b done=%b busy=%b AW=%0d W=%0d)",
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
-        $display("PASS: first-burst SLVERR terminates integrated writeback without issuing next AW");
+        repeat(3) @(negedge clk);
+        if (!writeback_error || writeback_done)
+            $fatal(1,"FAIL: error must remain asserted and done must remain low while idle");
+        $display("PASS: first-burst SLVERR terminates integrated writeback without issuing next AW; error stays sticky");
 
         // Repeat with an OKAY first response and SLVERR on the second burst.
         // The controller must report failure and must not claim successful completion.
         @(negedge clk);
-        fault_bresp_burst=1;
+        fault_bresp_burst=1; injected_bresp_code=2'b11;
         aw_write_count=0; w_write_count=0;
         writeback_start=1;
         while (!writeback_start_ready) @(negedge clk);
@@ -392,7 +396,10 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
             aw_write_count!=2 || w_write_count!=N*N || m_axi_awvalid)
             $fatal(1,"FAIL: second-burst SLVERR handling failed (err=%b done=%b busy=%b AW=%0d W=%0d)",
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
-        $display("PASS: second-burst SLVERR reports failure and suppresses done");
+        repeat(3) @(negedge clk);
+        if (!writeback_error || writeback_done)
+            $fatal(1,"FAIL: DECERR must remain asserted and done must remain low while idle");
+        $display("PASS: second-burst DECERR reports sticky failure and suppresses done");
 
         // Recovery check: a new command after an error clears old status and succeeds
         // without resetting the accelerator or the AXI writeback path.
@@ -412,6 +419,10 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
             $fatal(1,"FAIL: writeback did not recover on a fresh command (err=%b done=%b busy=%b AW=%0d W=%0d)",
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
         $display("PASS: writeback can be relaunched successfully after BRESP error without reset");
+        @(negedge clk);
+        if (writeback_done || writeback_error || writeback_busy)
+            $fatal(1,"FAIL: done must be a one-cycle pulse; successful relaunch must clear prior error");
+        $display("PASS: done is a one-cycle pulse and new start clears sticky error");
 
         // Restart under reset and verify the upstream reader rejects an early RLAST.
         @(negedge clk); resetb=0; op_start=0; writeback_start=0;
