@@ -62,6 +62,7 @@ module tito_systolic_dma_reader #(
     reg [BURST_LEN_W-1:0] burst_len;
     wire burst_desc_ready;
     wire local_data_ready;
+    wire local_data_valid;
     wire local_op_busy;
     wire local_op_done;
     wire local_op_error;
@@ -69,6 +70,7 @@ module tito_systolic_dma_reader #(
 
     assign op_busy = (state != ST_IDLE) && (state != ST_DONE) && (state != ST_ERROR);
     assign rd_data_ready = ((state == ST_A_DATA) || (state == ST_B_DATA)) && local_data_ready;
+    assign local_data_valid = rd_data_valid && ((state == ST_A_DATA) || (state == ST_B_DATA));
     // Keep the local core reset after a fatal protocol/memory error. Recovery is
     // explicit: external reset is required, so a partial burst cannot remain live.
     assign core_resetb = resetb && (state != ST_ERROR);
@@ -83,7 +85,7 @@ module tito_systolic_dma_reader #(
         .op_busy(local_op_busy), .op_done(local_op_done), .op_error(local_op_error),
         .burst_start_valid(burst_desc_valid), .burst_start_ready(burst_desc_ready),
         .burst_bank(burst_bank), .burst_base_addr(burst_base),
-        .burst_len(burst_len), .data_valid(rd_data_valid && rd_data_ready),
+        .burst_len(burst_len), .data_valid(local_data_valid),
         .data_ready(local_data_ready), .data(rd_data),
         .result_rd_en(result_rd_en), .result_rd_addr(result_rd_addr),
         .result_rd_data(result_rd_data), .result_rd_valid(result_rd_valid)
@@ -203,12 +205,7 @@ module tito_systolic_dma_reader #(
                                 state <= ST_ERROR;
                                 op_error <= 1'b1;
                             end else if (expected_last) begin
-                                if (tile_index + 1'b1 >= tile_count_q) begin
-                                    state <= ST_NEXT_TILE;
-                                end else begin
-                                    tile_index <= tile_index + 1'b1;
-                                    state <= ST_NEXT_TILE;
-                                end
+                                state <= ST_NEXT_TILE;
                             end else begin
                                 beat_count <= beat_count + 1'b1;
                             end
@@ -219,11 +216,13 @@ module tito_systolic_dma_reader #(
                             op_done <= 1'b1;
                             state <= ST_DONE;
                         end else if (tile_index + 1'b1 < tile_count_q) begin
-                            // The next A descriptor is accepted only when the
-                            // tiled controller has completed the prior compute.
-                            if (burst_desc_ready)
+                            // Wait until the tiled sequencer returns to its load
+                            // state, then advance the tile index and start A.
+                            if (burst_desc_ready) begin
+                                tile_index <= tile_index + 1'b1;
                                 state <= ST_A_DESC;
-                        end else if (!local_op_busy) begin
+                            end
+                        end else if (local_op_done) begin
                             op_done <= 1'b1;
                             state <= ST_DONE;
                         end
