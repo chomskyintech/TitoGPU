@@ -72,3 +72,14 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Generic synthesis: **PASS** — 19,673 generic mapped cells.
 - Logs/artifacts: [GitHub Actions run #39528371882](https://github.com/chomskyintech/TitoGPU/actions/runs/39528371882)
 - Limitations: the reference function shares the documented operation semantics and is simulation-only; this is not formal proof or exhaustive state-space coverage. Generic cell counts do not establish silicon area, timing, or power.
+
+## 2026-10-21 — First systolic MAC prototype passes simulation and synthesis
+
+- Tested commit: `d25ec42efd42d357edaa8e4e560b0bb2a3fa9199`
+- Tool and version: Icarus Verilog 12.0; Yosys 0.33
+- Command: `make sim`; `make synth`
+- Existing CGRA regression: **PASS** — 225 PE reference-model checks, 5 controller checks/3 completions, dot products 20 and 100.
+- Systolic MAC regression: **PASS** — two 2×2 signed matrix multiplications, including negative operands; results checked against expected matrices.
+- Generic synthesis: **PASS** — default 4×4 systolic MAC module reported 18,623 generic mapped cells; existing CGRA reported 19,673. These are separate generic netlists, not comparable silicon-area estimates.
+- Logs/artifacts: [GitHub Actions run #39528644736](https://github.com/chomskyintech/TitoGPU/actions/runs/39528644736)
+- Limitations: the testbench exercises N=2, while synthesis uses the default N=4. The tile is not connected to the top-level accelerator and has no SRAM/DMA, quantization pipeline, valid/ready backpressure, or PPA measurements. The current stream scheduler is demonstrated in the testbench, not implemented as a hardware controller.
