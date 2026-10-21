@@ -1,4 +1,4 @@
-default_nettype none
+`default_nettype none
 
 module tito_systolic_axi4_read_adapter #(
     parameter integer ADDR_W=32, DATA_W=8, AXI_DATA_W=32, LEN_W=8, ID_W=4,
