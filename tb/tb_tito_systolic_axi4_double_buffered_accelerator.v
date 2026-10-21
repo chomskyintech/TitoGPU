@@ -2,7 +2,7 @@
 `default_nettype none
 
 module tb_tito_systolic_axi4_double_buffered_accelerator;
-    localparam integer N=4, K=4, DATA_W=8, ACC_W=32, ADDR_W=16;
+    localparam integer N=4, K=4, DATA_W=8, AXI_DATA_W=32, ACC_W=32, ADDR_W=16;
     localparam integer MEM_ADDR_W=4, RESULT_ADDR_W=4, BURST_LEN_W=5, TILE_COUNT_W=4, ID_W=2;
 
     reg clk, resetb, op_start;
@@ -22,7 +22,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
     wire m_axi_arvalid;
     reg m_axi_arready;
     reg [ID_W-1:0] m_axi_rid;
-    reg [DATA_W-1:0] m_axi_rdata;
+    reg [AXI_DATA_W-1:0] m_axi_rdata;
     reg [1:0] m_axi_rresp;
     reg m_axi_rlast, m_axi_rvalid;
     wire m_axi_rready;
@@ -37,9 +37,10 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
     integer b_ref [0:1][0:K-1][0:N-1];
     integer expected [0:N-1][0:N-1];
     integer signed mem_value;
+    reg [31:0] packed_value;
 
     tito_systolic_axi4_double_buffered_accelerator #(
-        .N(N), .K(K), .DATA_W(DATA_W), .ACC_W(ACC_W), .ADDR_W(ADDR_W),
+        .N(N), .K(K), .DATA_W(DATA_W), .AXI_DATA_W(AXI_DATA_W), .ACC_W(ACC_W), .ADDR_W(ADDR_W),
         .MEM_ADDR_W(MEM_ADDR_W), .RESULT_ADDR_W(RESULT_ADDR_W),
         .BURST_LEN_W(BURST_LEN_W), .TILE_COUNT_W(TILE_COUNT_W), .ID_W(ID_W)
     ) dut (
@@ -76,7 +77,21 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         end
     endfunction
 
-    // Minimal AXI memory model: one burst at a time, independent AR/R handshakes.
+    function [31:0] packed_beat;
+        input [ADDR_W-1:0] base;
+        input integer beat_index;
+        integer lane;
+        integer signed v;
+        begin
+            packed_beat=0;
+            for(lane=0;lane<4;lane=lane+1) begin
+                v=operand_value(base,beat_index*4+lane);
+                packed_beat[lane*8 +: 8]=v[7:0];
+            end
+        end
+    endfunction
+
+    // Minimal 32-bit AXI memory model: four INT8 values per R beat.
     always @(posedge clk or negedge resetb) begin
         if (!resetb) begin
             mem_active <= 0;
@@ -100,12 +115,12 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
                     $display("FAIL: AXI accepted overlapping read addresses");
                     $fatal(1);
                 end
-                if (m_axi_arid !== 0 || m_axi_arsize !== 0 || m_axi_arburst !== 2'b01) begin
+                if (m_axi_arid !== 0 || m_axi_arsize !== 2 || m_axi_arburst !== 2'b01) begin
                     $display("FAIL: wrong AXI AR fields");
                     $fatal(1);
                 end
-                if (m_axi_arlen !== 8'd15) begin
-                    $display("FAIL: expected 16-beat burst, ARLEN=%0d",m_axi_arlen);
+                if (m_axi_arlen !== 8'd3) begin
+                    $display("FAIL: expected four-beat burst, ARLEN=%0d",m_axi_arlen);
                     $fatal(1);
                 end
                 case (ar_count)
@@ -130,9 +145,8 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
                 end else begin
                     mem_index <= mem_index + 1'b1;
                     if (gap_cfg == 0) begin
-                        mem_value = operand_value(mem_addr_q,mem_index+1);
-                        m_axi_rdata <= mem_value[DATA_W-1:0];
-                        m_axi_rlast <= bad_last_mode ? (mem_index+1 == 2) : (mem_index+1 == mem_len_q);
+                        m_axi_rdata <= packed_beat(mem_addr_q,mem_index+1);
+                        m_axi_rlast <= bad_last_mode ? (mem_index+1 == 1) : (mem_index+1 == mem_len_q);
                         m_axi_rvalid <= 1;
                     end else begin
                         m_axi_rvalid <= 0;
@@ -143,9 +157,8 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
                 if (gap_countdown > 0) begin
                     gap_countdown <= gap_countdown - 1;
                 end else begin
-                    mem_value = operand_value(mem_addr_q,mem_index);
-                    m_axi_rdata <= mem_value[DATA_W-1:0];
-                    m_axi_rlast <= bad_last_mode ? (mem_index == 2) : (mem_index == mem_len_q);
+                    m_axi_rdata <= packed_beat(mem_addr_q,mem_index);
+                    m_axi_rlast <= bad_last_mode ? (mem_index == 1) : (mem_index == mem_len_q);
                     m_axi_rvalid <= 1;
                     m_axi_rresp <= 0;
                     m_axi_rid <= 0;
