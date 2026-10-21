@@ -3,7 +3,7 @@ name: TitoGPU CGRA baseline
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/tito-systolic-mac]
   pull_request:
     branches: [main]
 
