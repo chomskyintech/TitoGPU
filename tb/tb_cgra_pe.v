@@ -10,7 +10,7 @@ module tb_cgra_pe;
     reg [31:0] src_a;
     reg [31:0] src_b;
     wire [31:0] result;
-    integer checks;
+    integer checks;\n    integer i;\n    integer seed;\n    reg [3:0] random_op;\n    reg [31:0] random_a, random_b;
 
     localparam OP_NOP   = 4'h0;
     localparam OP_ADD   = 4'h1;
@@ -32,6 +32,35 @@ module tb_cgra_pe;
     );
 
     always #5 clk = ~clk;
+
+    function [31:0] reference_result;
+        input [3:0] test_op;
+        input [31:0] a;
+        input [31:0] b;
+        reg signed [7:0] signed_a8;
+        reg signed [7:0] signed_b8;
+        reg signed [15:0] product8;
+        begin
+            signed_a8 = a[7:0];
+            signed_b8 = b[7:0];
+            product8 = signed_a8 * signed_b8;
+            case (test_op)
+                OP_ADD:   reference_result = a + b;
+                OP_SUB:   reference_result = a - b;
+                OP_MUL8:  reference_result = {{16{product8[15]}}, product8};
+                OP_AND:   reference_result = a & b;
+                OP_OR:    reference_result = a | b;
+                OP_XOR:   reference_result = a ^ b;
+                OP_MAX:   reference_result = ($signed(a) >= $signed(b)) ? a : b;
+                OP_MIN:   reference_result = ($signed(a) <= $signed(b)) ? a : b;
+                OP_SHL:   reference_result = a << b[4:0];
+                OP_SHR:   reference_result = $signed(a) >>> b[4:0];
+                OP_PASSA: reference_result = a;
+                OP_PASSB: reference_result = b;
+                default:  reference_result = 32'd0;
+            endcase
+        end
+    endfunction
 
     task check_op;
         input [3:0] test_op;
@@ -82,7 +111,7 @@ module tb_cgra_pe;
         op = OP_NOP;
         src_a = 0;
         src_b = 0;
-        checks = 0;
+        checks = 0;\n        seed = 32'h54_47_50_55;
 
         repeat (2) @(negedge clk);
         resetb = 1;
