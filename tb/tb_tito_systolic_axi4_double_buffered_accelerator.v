@@ -284,7 +284,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         a_base_addr=100; b_base_addr=200; op_tile_count=2;
         result_rd_en=0; result_rd_addr=0;
         bad_last_mode=0; gap_cfg=0; cycles=0; checks=0;
-        fault_test_mode=0; inject_bresp_error=0; injected_bresp_code=2'b10; fault_bresp_burst=0; injected_bresp_code=2'b10;
+        fault_test_mode=0; inject_bresp_error=0; fault_bresp_burst=0; injected_bresp_code=2'b10;
         if (!$value$plusargs("MEM_GAP=%d",gap_cfg)) gap_cfg=0;
         if (gap_cfg < 0) gap_cfg=0;
         repeat(3) @(negedge clk);
@@ -396,7 +396,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         repeat(3) @(negedge clk);
         if (!writeback_error || writeback_error_code!=4'd6 || writeback_done || writeback_busy ||
             aw_write_count!=2 || w_write_count!=N*N || m_axi_awvalid)
-            $fatal(1,"FAIL: second-burst SLVERR handling failed (err=%b done=%b busy=%b AW=%0d W=%0d)",
+            $fatal(1,"FAIL: second-burst DECERR handling failed (err=%b done=%b busy=%b AW=%0d W=%0d)",
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
         repeat(3) @(negedge clk);
         if (!writeback_error || writeback_done)
