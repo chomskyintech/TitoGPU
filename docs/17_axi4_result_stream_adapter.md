@@ -2,7 +2,7 @@
 
 ## Status
 
-RTL implemented, unit-tested, and integrated into the top-level wrapper. The full simulation suite and generic Yosys synthesis passed in [RTL regression run 39542794145](https://github.com/chomskyintech/TitoGPU/actions/runs/39542794145).
+RTL implemented, unit-tested, and integrated into the top-level wrapper. The integrated writeback path and generic Yosys synthesis passed in [RTL regression run 39542794145](https://github.com/chomskyintech/TitoGPU/actions/runs/39542794145). Legal 4-KiB boundary splitting passed in [RTL regression run 39544784310](https://github.com/chomskyintech/TitoGPU/actions/runs/39544784310).
 
 ## Purpose
 
@@ -16,9 +16,9 @@ The accelerator's result memory is exposed through a synchronous read port, not 
 - The result memory returns `result_rd_data` with `result_rd_valid` one cycle after `result_rd_en`.
 - A one-word buffer captures each result. The buffered word remains stable until the AXI write controller accepts it through `stream_valid/stream_ready`.
 - `stream_last` marks only result word `N*N-1`.
-- The write controller sends a single 32-bit INCR burst, with fixed `AWID=0`, full-word WSTRB, and WLAST on the final word.
+- The write controller sends 32-bit INCR bursts with fixed `AWID=0` and full-word WSTRB. `WLAST` marks each burst's last beat; the stream's `stream_last` still marks only the final result word.
 - `done` is asserted only after the AXI B-channel handshake returns OKAY.
-- Misaligned bases, more than 256 words, and 4-KiB boundary crossing are rejected before AXI AWVALID is issued.
+- Misaligned bases and more than 256 words are rejected before AXI AWVALID is issued. A result range may cross a 4-KiB boundary; the write controller splits it into legal bursts and waits for each B response.
 - The result request counter has an extra count bit so it can represent `N*N` after requesting the final word and cannot wrap back to address zero.
 
 ## Files
@@ -48,7 +48,8 @@ The result-stream test models a synchronous result memory and a write memory. It
 - WSTRB and WLAST placement;
 - delayed B response and completion only after response handshake;
 - no extra result-memory reads and no leftover buffered result;
-- rejection of a result range crossing a 4-KiB boundary.
+- rejection of an unaligned result base;
+- legal burst splitting across a 4-KiB boundary is tested by the controller testbench.
 
 The regression is a functional simulation, not vendor AXI VIP or a physical implementation.
 
@@ -58,4 +59,4 @@ The top-level wrapper now instantiates this block and exposes writeback start/ba
 
 ## Limitations
 
-Only 32-bit result words and one full-width burst are supported. The design does not split large output matrices into multiple legal bursts, does not support partial final beats, and has no retry, timeout, abort, or multiple-outstanding transaction protocol. Generic Yosys synthesis is structural evidence, not timing, area, power, or performance-per-watt evidence.
+Only 32-bit result words are supported, and a command is limited to 256 result words. The controller permits only one outstanding burst at a time and splits a command at 4-KiB boundaries. Partial final beats, retry, timeout, abort, and multiple-outstanding transaction support are not implemented. Generic Yosys synthesis is structural evidence, not timing, area, power, or performance-per-watt evidence.
