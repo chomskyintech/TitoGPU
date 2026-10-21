@@ -60,3 +60,15 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Logs/artifacts: [GitHub Actions run #39528239704](https://github.com/chomskyintech/TitoGPU/actions/runs/39528239704)
 - Synthesis notes: Yosys reports 19,673 generic mapped cells. This is not technology-specific area, timing, or power.
 - Limitations/follow-up: Icarus still warns about missing explicit time units/precision in RTL modules. The controller regression is directed, not exhaustive or formal verification. Add a reproducible reference-model regression and reset/configuration edge cases before making architectural claims.
+
+## 2026-10-21 — Deterministic PE reference-model regression passes
+
+- Tested commit: `092abdda92c7fa258d778441c6dbd6825acad217`
+- Tool and version: Icarus Verilog 12.0; Yosys 0.33
+- Commands: `make sim`; `make synth`
+- PE tests: **PASS — 225 checks**. The original directed cases are retained, followed by 200 deterministic pseudo-random operand cases distributed across all 12 supported non-NOP operations and checked against a separate testbench reference function.
+- Controller tests: **PASS — 5 checks, 3 completions**.
+- Integration smoke tests: **PASS** — dot products 20 and 100.
+- Generic synthesis: **PASS** — 19,673 generic mapped cells.
+- Logs/artifacts: [GitHub Actions run #39528371882](https://github.com/chomskyintech/TitoGPU/actions/runs/39528371882)
+- Limitations: the reference function shares the documented operation semantics and is simulation-only; this is not formal proof or exhaustive state-space coverage. Generic cell counts do not establish silicon area, timing, or power.
