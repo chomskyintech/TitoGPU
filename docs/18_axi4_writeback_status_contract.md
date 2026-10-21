@@ -2,7 +2,7 @@
 
 ## Scope
 
-This contract defines the status interface of `tito_systolic_axi4_double_buffered_accelerator` writeback. It is a hardware interface contract for an eventual driver; this repository does not yet implement an AXI-Lite register bank or software driver.
+This contract defines the status interface of `tito_systolic_axi4_double_buffered_accelerator` writeback. A standalone AXI-Lite register bank now makes these signals software-readable in principle, but it is not yet integrated into a bus-facing system wrapper and no software driver exists. See [the register map](19_axi4lite_control_status_register_map.md).
 
 ## Public status signals
 
