@@ -13,7 +13,7 @@ module tb_tito_systolic_command_accelerator;
     reg [MEM_ADDR_W-1:0] mem_wr_addr;
     reg [DATA_W-1:0] mem_wr_data;
     reg [RESULT_ADDR_W-1:0] result_rd_addr;
-    wire busy, done, result_rd_valid;
+    wire busy, done, result_rd_valid, mem_wr_ready;
     wire [ACC_W-1:0] result_rd_data;
 
     integer a_ref [0:N-1][0:K-1];
@@ -26,7 +26,7 @@ module tb_tito_systolic_command_accelerator;
         .MEM_ADDR_W(MEM_ADDR_W), .RESULT_ADDR_W(RESULT_ADDR_W)
     ) dut (
         .clk(clk), .resetb(resetb),
-        .mem_wr_en(mem_wr_en), .mem_wr_bank(mem_wr_bank),
+        .mem_wr_en(mem_wr_en), .mem_wr_ready(mem_wr_ready), .mem_wr_bank(mem_wr_bank),
         .mem_wr_addr(mem_wr_addr), .mem_wr_data(mem_wr_data),
         .cmd_start(cmd_start), .cmd_accumulate(cmd_accumulate), .busy(busy), .done(done),
         .result_rd_en(result_rd_en), .result_rd_addr(result_rd_addr),
@@ -41,6 +41,11 @@ module tb_tito_systolic_command_accelerator;
         checks=0; cycles=0;
         repeat (3) @(negedge clk);
         resetb=1;
+        @(negedge clk);
+        if (!mem_wr_ready) begin
+            $display("FAIL: memory write port should be ready while idle");
+            $fatal(1);
+        end
 
         // Signed matrices with deterministic nontrivial values.
         for (i = 0; i < N; i = i + 1)
@@ -76,8 +81,8 @@ module tb_tito_systolic_command_accelerator;
         // A command is a one-cycle pulse. done must wait for result writeback.
         @(negedge clk); cmd_start=1;
         @(negedge clk); cmd_start=0;
-        if (!busy) begin
-            $display("FAIL: command wrapper did not assert busy after start");
+        if (!busy || mem_wr_ready) begin
+            $display("FAIL: command wrapper must assert busy and deassert memory ready after start");
             $fatal(1);
         end
 
@@ -102,8 +107,8 @@ module tb_tito_systolic_command_accelerator;
             $display("FAIL: command wrapper timed out before writeback completion");
             $fatal(1);
         end
-        if (busy) begin
-            $display("FAIL: busy should deassert when done is asserted");
+        if (busy || !mem_wr_ready) begin
+            $display("FAIL: busy should deassert and memory ready should assert when done is asserted");
             $fatal(1);
         end
 
