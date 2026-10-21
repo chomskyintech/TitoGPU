@@ -16,7 +16,8 @@ module tito_systolic_command_accelerator #(
 ) (
     input  wire                         clk,
     input  wire                         resetb,
-    input  wire                         mem_wr_en,
+    input  wire                         mem_wr_en, // write-valid: held with address/data until ready
+    output wire                         mem_wr_ready,
     input  wire                         mem_wr_bank, // 0 = A, 1 = B
     input  wire [MEM_ADDR_W-1:0]        mem_wr_addr,
     input  wire [DATA_W-1:0]            mem_wr_data,
@@ -44,8 +45,10 @@ module tito_systolic_command_accelerator #(
     wire core_wr_en;
 
     assign busy = (state != ST_IDLE);
-    // Host writes are accepted only while no command is in flight.
-    assign core_wr_en = mem_wr_en && (state == ST_IDLE);
+    // Ready/valid write handshake: writes are accepted only while idle.
+    // A DMA or host must hold valid/address/data until mem_wr_ready is high.
+    assign mem_wr_ready = (state == ST_IDLE);
+    assign core_wr_en = mem_wr_en && mem_wr_ready;
 
     tito_systolic_stream_accelerator #(
         .N(N), .K(K), .DATA_W(DATA_W), .ACC_W(ACC_W),
