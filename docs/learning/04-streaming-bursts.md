@@ -23,11 +23,13 @@ The loader is not a complete DMA engine. It does not read external memory or gen
 ## Hands-on exercises
 
 1. Run `make sim` and locate the burst loader test's invalid-descriptor check.
-2. Change the burst length from 16 to 15 but still send all 16 values. Predict why the last beat will not be accepted as part of the burst.
-3. Try a descriptor whose base plus length exceeds the local memory range. Confirm the error pulse and that no burst starts.
-4. Draw the state machine: idle, burst-active, and the transition on the final accepted beat.
-5. Explain why a burst loader can reduce address-control overhead but does not automatically increase memory bandwidth.
-6. Sketch how double buffering could allow the next tile to load while the current tile computes. Identify the additional memory banks and control states needed.
+2. Find the test that holds `data_valid` high without an active burst. Why is no transfer accepted?
+3. Find the test that resets halfway through a burst. What state must reset clear, and what scratchpad contents remain until overwritten?
+4. Change the burst length from 16 to 15 but still send all 16 values. Predict why the last beat will not be accepted as part of the burst.
+5. Try a descriptor whose base plus length exceeds the local memory range. Confirm the error pulse and that no burst starts.
+6. Draw the state machine: idle, burst-active, and the transition on the final accepted beat.
+7. Explain why a burst loader can reduce address-control overhead but does not automatically increase memory bandwidth.
+8. Sketch how double buffering could allow the next tile to load while the current tile computes. Identify the additional memory banks and control states needed.
 
 ## Related files
 
