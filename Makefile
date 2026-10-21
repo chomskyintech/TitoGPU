@@ -1,6 +1,6 @@
 RTL = rtl/cgra_pe.v rtl/cgra_array.v rtl/cgra_top.v
 
-.PHONY: sim synth synth-writeback synth-mac synth-scheduler synth-accelerator synth-stream synth-command synth-burst synth-tiled synth-dma synth-double-buffered synth-axi clean
+.PHONY: sim synth synth-writeback synth-control synth-mac synth-scheduler synth-accelerator synth-stream synth-command synth-burst synth-tiled synth-dma synth-double-buffered synth-axi clean
 
 sim:
 	iverilog -g2012 -Wall -o build_cgra_pe rtl/cgra_pe.v tb/tb_cgra_pe.v
@@ -47,8 +47,10 @@ sim:
 	vvp build_tito_axi_dbuf +MEM_GAP=0
 	vvp build_tito_axi_dbuf +MEM_GAP=2
 	vvp build_tito_axi_dbuf +MEM_GAP=5
+	iverilog -g2012 -Wall -o build_tito_axi_lite_ctrl rtl/tito_systolic_axi4lite_control.v tb/tb_tito_systolic_axi4lite_control.v
+	vvp build_tito_axi_lite_ctrl
 
-synth: synth-mac synth-scheduler synth-accelerator synth-stream synth-command synth-burst synth-tiled synth-dma synth-double-buffered synth-axi
+synth: synth-mac synth-scheduler synth-accelerator synth-stream synth-command synth-burst synth-tiled synth-dma synth-double-buffered synth-axi synth-control
 	yosys -s synth/synth.ys
 
 synth-mac:
@@ -81,8 +83,11 @@ synth-double-buffered:
 synth-writeback:
 	yosys -p 'read_verilog rtl/tito_systolic_axi4_write_adapter.v rtl/tito_systolic_axi4_result_writeback.v; hierarchy -top tito_systolic_axi4_result_writeback; synth -top tito_systolic_axi4_result_writeback; stat'
 
+synth-control:
+	yosys -p 'read_verilog rtl/tito_systolic_axi4lite_control.v; hierarchy -top tito_systolic_axi4lite_control; synth -top tito_systolic_axi4lite_control; stat'
+
 synth-axi:
 	yosys -p 'read_verilog rtl/tito_systolic_mac.v rtl/tito_systolic_double_buffered_banked_scratchpad.v rtl/tito_systolic_double_buffered_stream_accelerator.v rtl/tito_systolic_double_buffered_command_accelerator.v rtl/tito_systolic_double_buffered_burst_command_accelerator.v rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v rtl/tito_systolic_double_buffered_dma_reader.v rtl/tito_systolic_axi4_read_adapter.v rtl/tito_systolic_axi4_write_adapter.v rtl/tito_systolic_axi4_result_writeback.v rtl/tito_systolic_axi4_double_buffered_accelerator.v; hierarchy -top tito_systolic_axi4_double_buffered_accelerator; synth -top tito_systolic_axi4_double_buffered_accelerator; stat'
 
 clean:
-	rm -f build_cgra build_cgra_pe build_cgra_controller build_tito_mac build_tito_mac_n4 build_tito_matmul build_tito_accel build_tito_stream build_tito_command build_tito_k_tiling build_tito_burst build_tito_tiled build_tito_dma build_tito_dbuf build_tito_axi_read build_tito_axi_width build_tito_axi_write build_tito_axi_result_writeback build_tito_axi_dbuf *.vcd
+	rm -f build_cgra build_cgra_pe build_cgra_controller build_tito_mac build_tito_mac_n4 build_tito_matmul build_tito_accel build_tito_stream build_tito_command build_tito_k_tiling build_tito_burst build_tito_tiled build_tito_dma build_tito_dbuf build_tito_axi_read build_tito_axi_width build_tito_axi_write build_tito_axi_result_writeback build_tito_axi_dbuf build_tito_axi_lite_ctrl *.vcd
