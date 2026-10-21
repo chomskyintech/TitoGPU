@@ -55,6 +55,7 @@ The controller unit regression verifies the listed channel and command cases. Th
 - OKAY response produces done only after the response handshake.
 - SLVERR/DECERR produces an error and no done-success indication.
 - Inject a non-OKAY BRESP on the first burst and on a later burst; confirm no further AW is issued after the failure and done remains low.
+- Relaunch a successful writeback after a failed command without resetting the accelerator; confirm the new command clears prior error status.
 - Zero-length, unaligned, and over-256-beat commands are rejected; a transfer crossing 4 KiB is split, and each burst's AW address/length and WLAST placement are checked.
 - Reset while idle and reset during a transaction; document that reset abandons the in-flight transaction and requires system-level quiescence.
 - End-to-end matrix result writeback compared byte-for-byte against an independent reference, once the result interface has a defined handshake.
@@ -64,7 +65,7 @@ The controller unit regression verifies the listed channel and command cases. Th
 1. Implement and unit-test the write adapter/controller independently.
 2. Add the controller to `make sim` and generic synthesis targets.
 3. Implement and verify the synchronous result-stream adapter; complete. Integrate it into the top-level accelerator wrapper with arbitration between host result reads and writeback reads; complete and covered by the integrated regression.
-4. Add an end-to-end memory model and test writeback under channel stalls and injected response errors; completed for first- and second-burst SLVERR in [RTL regression run 39545023764](https://github.com/chomskyintech/TitoGPU/actions/runs/39545023764).
+4. Add an end-to-end memory model and test writeback under channel stalls and injected response errors; completed for first- and second-burst SLVERR plus successful no-reset relaunch recovery in [RTL regression run 39545166522](https://github.com/chomskyintech/TitoGPU/actions/runs/39545166522).
 5. Document the burst-boundary and response-fault milestones in [Lesson 14](learning/14-axi4-burst-splitting.md) and [Lesson 15](learning/15-axi4-bresp-fault-injection.md).
 
 ## Non-goals
