@@ -24,7 +24,7 @@
 5. `SLVERR` handling while downstream data is stalled.
 6. Rejection of a response with an unexpected RID.
 
-Run `make sim` and `make synth-axi`. Do not call the milestone verified until the latest GitHub Actions run completes successfully.
+Run `make sim` and `make synth-axi`. The full regression and generic synthesis passed in [CI run #173](https://github.com/chomskyintech/TitoGPU/actions/runs/39539898394), using test/Makefile commit [\`1946de2\`](https://github.com/chomskyintech/TitoGPU/commit/1946de28bee3ebe5c1cae71848b066abf18a0d02).
 
 ## Explicit scope limits
 
