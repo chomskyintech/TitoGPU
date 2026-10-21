@@ -15,7 +15,9 @@ module tito_systolic_double_buffered_stream_accelerator #(
     input  wire                       clk,
     input  wire                       resetb,
     input  wire                       wr_en,
-    input  wire                       wr_buffer, // tile buffer being filled\n    input  wire                       rd_buffer, // tile buffer currently computing\n    input  wire                       wr_bank, // 0 = A, 1 = B
+    input  wire                       wr_buffer, // tile buffer being filled
+    input  wire                       rd_buffer, // tile buffer currently computing
+    input  wire                       wr_bank, // 0 = A, 1 = B
     input  wire [ADDR_W-1:0]          wr_addr,
     input  wire [DATA_W-1:0]          wr_data,
     input  wire                       start,
