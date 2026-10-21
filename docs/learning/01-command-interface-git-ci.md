@@ -111,6 +111,6 @@ Run `make -n sim` to print the commands without executing them. Identify which c
 
 | Date (UTC) | Commit | Check | Result |
 |---|---|---|---|
-| 2026-10-21 | `dc43c743b5fed3367e2fa8cfb247090e0f5dc4a7` | Reset interruption and recovery CI | Pending at documentation time |
+| 2026-10-21 | `dc43c743b5fed3367e2fa8cfb247090e0f5dc4a7` | Reset interruption and recovery CI | **Passed** — [run #66](https://github.com/chomskyintech/TitoGPU/actions/runs/39534835247) |
 
 Update this table only after observing the final CI result. Record failures as well as passes so the development history remains honest.
