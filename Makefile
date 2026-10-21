@@ -21,6 +21,8 @@ sim:
 	vvp build_tito_stream
 	iverilog -g2012 -Wall -o build_tito_command rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v tb/tb_tito_systolic_command_accelerator.v
 	vvp build_tito_command
+	iverilog -g2012 -Wall -o build_tito_k_tiling rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v tb/tb_tito_systolic_k_tiling.v
+	vvp build_tito_k_tiling
 
 synth: synth-mac synth-scheduler synth-accelerator synth-stream synth-command
 	yosys -s synth/synth.ys
@@ -41,4 +43,4 @@ synth-command:
 	yosys -p 'read_verilog rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v; hierarchy -top tito_systolic_command_accelerator; synth -top tito_systolic_command_accelerator; stat'
 
 clean:
-	rm -f build_cgra build_cgra_pe build_cgra_controller build_tito_mac build_tito_mac_n4 build_tito_matmul build_tito_accel build_tito_stream build_tito_command *.vcd
+	rm -f build_cgra build_cgra_pe build_cgra_controller build_tito_mac build_tito_mac_n4 build_tito_matmul build_tito_accel build_tito_stream build_tito_command build_tito_k_tiling *.vcd
