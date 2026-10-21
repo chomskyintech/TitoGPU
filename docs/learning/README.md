@@ -130,3 +130,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 16 — Writeback Status and Recovery
 
 [Open the lesson](16-axi4-writeback-status-recovery.md). Learn the public status signal contract, sticky error semantics, one-cycle completion pulse, and safe recovery expectations.
+
+
+## Lesson 17 — AXI4-Lite Control/Status Registers
+
+[Open the lesson](17-axi4lite-control-status.md). Learn register decoding, independent AW/W handshakes, command pulses, sticky status, W1C, and software-visible errors.
