@@ -24,3 +24,5 @@ jobs:
         run: make synth-writeback
       - name: Synthesize AXI-Lite control/status register bank
         run: make synth-control
+      - name: Synthesize software-facing AXI-Lite system
+        run: make synth-system
