@@ -1,6 +1,6 @@
 RTL = rtl/cgra_pe.v rtl/cgra_array.v rtl/cgra_top.v
 
-.PHONY: sim synth synth-mac synth-scheduler synth-accelerator synth-stream synth-command clean
+.PHONY: sim synth synth-mac synth-scheduler synth-accelerator synth-stream synth-command synth-burst clean
 
 sim:
 	iverilog -g2012 -Wall -o build_cgra_pe rtl/cgra_pe.v tb/tb_cgra_pe.v
@@ -23,8 +23,10 @@ sim:
 	vvp build_tito_command
 	iverilog -g2012 -Wall -o build_tito_k_tiling rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v tb/tb_tito_systolic_k_tiling.v
 	vvp build_tito_k_tiling
+	iverilog -g2012 -Wall -o build_tito_burst rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v rtl/tito_systolic_burst_command_accelerator.v tb/tb_tito_systolic_burst_command_accelerator.v
+	vvp build_tito_burst
 
-synth: synth-mac synth-scheduler synth-accelerator synth-stream synth-command
+synth: synth-mac synth-scheduler synth-accelerator synth-stream synth-command synth-burst
 	yosys -s synth/synth.ys
 
 synth-mac:
@@ -42,5 +44,8 @@ synth-stream:
 synth-command:
 	yosys -p 'read_verilog rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v; hierarchy -top tito_systolic_command_accelerator; synth -top tito_systolic_command_accelerator; stat'
 
+synth-burst:
+	yosys -p 'read_verilog rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v rtl/tito_systolic_burst_command_accelerator.v; hierarchy -top tito_systolic_burst_command_accelerator; synth -top tito_systolic_burst_command_accelerator; stat'
+
 clean:
-	rm -f build_cgra build_cgra_pe build_cgra_controller build_tito_mac build_tito_mac_n4 build_tito_matmul build_tito_accel build_tito_stream build_tito_command build_tito_k_tiling *.vcd
+	rm -f build_cgra build_cgra_pe build_cgra_controller build_tito_mac build_tito_mac_n4 build_tito_matmul build_tito_accel build_tito_stream build_tito_command build_tito_k_tiling build_tito_burst *.vcd
