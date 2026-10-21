@@ -1,7 +1,7 @@
 `default_nettype none
 
 // Serializes the synchronous local result-memory read port into a ready/valid
-// stream and writes the results as one full-width AXI4 burst.
+// stream. The AXI write controller splits the stream at legal burst boundaries.
 module tito_systolic_axi4_result_writeback #(
     parameter integer N=4,
     parameter integer DATA_W=32,
@@ -40,7 +40,7 @@ module tito_systolic_axi4_result_writeback #(
     localparam integer LEN_W=9;
     localparam integer COUNT_W=(RESULT_BEATS>1 ? $clog2(RESULT_BEATS+1) : 1);
     localparam [3:0] ERR_NONE=4'd0, ERR_UNALIGNED=4'd2,
-                     ERR_TOO_LONG=4'd3, ERR_4K_CROSS=4'd4;
+                     ERR_TOO_LONG=4'd3;
 
     reg active, local_error;
     reg [3:0] local_error_code;
@@ -61,8 +61,7 @@ module tito_systolic_axi4_result_writeback #(
     assign writer_cmd_beats=RESULT_BEATS;
     assign start_ready=!active && writer_cmd_ready;
     assign start_bad=((result_base_addr % BYTES_PER_BEAT)!=0) ||
-                     (RESULT_BEATS>256) ||
-                     ((result_base_addr[11:0] + RESULT_BEATS*BYTES_PER_BEAT)>4096);
+                     (RESULT_BEATS>256);
     assign writer_cmd_valid=start_valid && start_ready && !start_bad;
     assign error=local_error || writer_error;
     assign error_code=local_error ? local_error_code : writer_error_code;
@@ -114,7 +113,7 @@ module tito_systolic_axi4_result_writeback #(
                     else if (RESULT_BEATS>256)
                         local_error_code<=ERR_TOO_LONG;
                     else
-                        local_error_code<=ERR_4K_CROSS;
+                        local_error_code<=ERR_TOO_LONG;
                 end else begin
                     active<=1;
                 end
