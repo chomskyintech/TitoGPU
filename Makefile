@@ -39,6 +39,8 @@ sim:
 	vvp build_tito_axi_read
 	iverilog -g2012 -Wall -o build_tito_axi_dbuf rtl/tito_systolic_mac.v rtl/tito_systolic_double_buffered_banked_scratchpad.v rtl/tito_systolic_double_buffered_stream_accelerator.v rtl/tito_systolic_double_buffered_command_accelerator.v rtl/tito_systolic_double_buffered_burst_command_accelerator.v rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v rtl/tito_systolic_double_buffered_dma_reader.v rtl/tito_systolic_axi4_read_adapter.v rtl/tito_systolic_axi4_double_buffered_accelerator.v tb/tb_tito_systolic_axi4_double_buffered_accelerator.v
 	vvp build_tito_axi_dbuf +MEM_GAP=0
+	vvp build_tito_axi_dbuf +MEM_GAP=2
+	vvp build_tito_axi_dbuf +MEM_GAP=5
 
 synth: synth-mac synth-scheduler synth-accelerator synth-stream synth-command synth-burst synth-tiled synth-dma synth-double-buffered synth-axi
 	yosys -s synth/synth.ys
