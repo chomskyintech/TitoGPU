@@ -33,7 +33,7 @@ module tb_tito_systolic_double_buffered_dma_reader;
     integer expected [0:N-1][0:N-1];
     integer i,j,k,t,checks,cycles,request_count,overlap_seen;
     integer response_beats, request_backpressure_cycles;
-    integer compute_busy_cycles, compute_idle_cycles, memory_active_cycles;
+    integer compute_busy_cycles, compute_idle_cycles, memory_active_cycles, prefetch_beats_while_compute_busy;
     integer mem_gap_cfg, mem_gap_countdown;
     integer signed mem_value;
 
@@ -86,6 +86,7 @@ module tb_tito_systolic_double_buffered_dma_reader;
             request_count <= 0;
             response_beats <= 0;
             request_backpressure_cycles <= 0;
+            prefetch_beats_while_compute_busy <= 0;
         end else begin
             rd_req_ready <= (cycles % 4 != 1);
             if (rd_req_valid && !rd_req_ready)
@@ -108,6 +109,8 @@ module tb_tito_systolic_double_buffered_dma_reader;
 
             if (rd_data_valid && rd_data_ready) begin
                 response_beats <= response_beats + 1;
+                if (request_count >= 3 && dut.tiled_core.core_busy)
+                    prefetch_beats_while_compute_busy <= prefetch_beats_while_compute_busy + 1;
                 if (rd_data_last) begin
                     mem_active <= 1'b0;
                     rd_data_valid <= 1'b0;
@@ -140,7 +143,7 @@ module tb_tito_systolic_double_buffered_dma_reader;
         clk=0; resetb=0;
         op_start=0; a_base_addr=100; b_base_addr=200; op_tile_count=2;
         rd_req_ready=0; rd_data_valid=0; rd_data=0; rd_data_last=0; rd_error=0;
-        result_rd_en=0; result_rd_addr=0; cycles=0; checks=0; request_count=0; overlap_seen=0; bad_last_mode=0;
+        result_rd_en=0; result_rd_addr=0; cycles=0; checks=0; request_count=0; overlap_seen=0; bad_last_mode=0; prefetch_beats_while_compute_busy=0;
         mem_gap_cfg=0; mem_gap_countdown=0;
         if (!$value$plusargs("MEM_GAP=%d",mem_gap_cfg)) mem_gap_cfg=0;
         if (mem_gap_cfg < 0) mem_gap_cfg=0;
@@ -206,10 +209,10 @@ module tb_tito_systolic_double_buffered_dma_reader;
                 checks=checks+1;
             end
         @(negedge clk); result_rd_en=0;
-        $display("PASS: double-buffered DMA frontend overlapped tile reads with compute; 4 read requests, %0d matrix outputs (%0d cycles)",
+        $display("PASS: double-buffered DMA frontend accepted the next-tile request during compute; 4 read requests, %0d matrix outputs (%0d cycles)",
             checks,cycles);
-        $display("METRICS: compute_busy_cycles=%0d compute_idle_while_operation_busy=%0d memory_active_cycles=%0d response_beats=%0d request_backpressure_cycles=%0d",
-            compute_busy_cycles,compute_idle_cycles,memory_active_cycles,response_beats,request_backpressure_cycles);
+        $display("METRICS: compute_busy_cycles=%0d compute_idle_while_operation_busy=%0d memory_active_cycles=%0d response_beats=%0d request_backpressure_cycles=%0d prefetch_beats_while_compute_busy=%0d",
+            compute_busy_cycles,compute_idle_cycles,memory_active_cycles,response_beats,request_backpressure_cycles,prefetch_beats_while_compute_busy);
 
         // Reset, then inject an early last marker. The frontend must fail closed.
         @(negedge clk); resetb=0; op_start=0;
