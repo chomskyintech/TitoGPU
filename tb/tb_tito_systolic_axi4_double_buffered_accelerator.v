@@ -35,6 +35,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
     integer aw_write_count, w_write_count, write_phase, write_resp_delay;
     reg write_resp_pending;
     reg fault_test_mode, inject_bresp_error;
+    integer fault_bresp_burst;
 
     wire [ID_W-1:0] m_axi_arid;
     wire [ADDR_W-1:0] m_axi_araddr;
@@ -228,8 +229,13 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
                     if (m_axi_awaddr!==16'd300 || m_axi_awlen!==8'd15)
                         $fatal(1,"FAIL: incorrect normal result write AW payload");
                 end else begin
-                    if (m_axi_awaddr!==16'h0FFC || m_axi_awlen!==8'd0)
-                        $fatal(1,"FAIL: injected-error test expected first split burst at 0x0FFC");
+                    case (aw_write_count)
+                        0: if (m_axi_awaddr!==16'h0FFC || m_axi_awlen!==8'd0)
+                            $fatal(1,"FAIL: expected first split burst at 0x0FFC, AWLEN=0");
+                        1: if (fault_bresp_burst!=1 || m_axi_awaddr!==16'h1000 || m_axi_awlen!==8'd14)
+                            $fatal(1,"FAIL: unexpected second split burst after injected BRESP fault");
+                        default: $fatal(1,"FAIL: unexpected extra AW after injected BRESP fault");
+                    endcase
                 end
                 aw_write_count<=aw_write_count+1;
             end
@@ -237,7 +243,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
             if (m_axi_wvalid && m_axi_wready) begin
                 if (w_write_count>=N*N) $fatal(1,"FAIL: too many result W beats");
                 if (m_axi_wstrb!==4'hf ||
-                    m_axi_wlast!==(fault_test_mode ? (w_write_count==0) : (w_write_count==N*N-1)))
+                    m_axi_wlast!==(fault_test_mode ? ((w_write_count==0)||(w_write_count==N*N-1)) : (w_write_count==N*N-1)))
                     $fatal(1,"FAIL: bad result WSTRB/WLAST at beat %0d",w_write_count);
                 write_mem[w_write_count]<=m_axi_wdata;
                 w_write_count<=w_write_count+1;
@@ -252,7 +258,9 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
                     write_resp_delay<=write_resp_delay-1;
                 else begin
                     m_axi_bvalid<=1;
-                    m_axi_bresp<=inject_bresp_error ? 2'b10 : 2'b00;
+                    m_axi_bresp<=((inject_bresp_error && fault_bresp_burst==0 && aw_write_count==1) ||
+                                  (inject_bresp_error && fault_bresp_burst==1 && aw_write_count==2))
+                                 ? 2'b10 : 2'b00;
                     write_resp_pending<=0;
                 end
             end
@@ -273,7 +281,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         a_base_addr=100; b_base_addr=200; op_tile_count=2;
         result_rd_en=0; result_rd_addr=0;
         bad_last_mode=0; gap_cfg=0; cycles=0; checks=0;
-        fault_test_mode=0; inject_bresp_error=0;
+        fault_test_mode=0; inject_bresp_error=0; fault_bresp_burst=0;
         if (!$value$plusargs("MEM_GAP=%d",gap_cfg)) gap_cfg=0;
         if (gap_cfg < 0) gap_cfg=0;
         repeat(3) @(negedge clk);
@@ -350,7 +358,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         // Inject SLVERR on the first burst of a result write that crosses 4 KiB.
         // The controller must report failure and must not issue the second AW at 0x1000.
         @(negedge clk);
-        fault_test_mode=1; inject_bresp_error=1;
+        fault_test_mode=1; inject_bresp_error=1; fault_bresp_burst=0;
         writeback_base_addr=16'h0FFC;
         aw_write_count=0; w_write_count=0;
         writeback_start=1;
@@ -366,6 +374,25 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
             $fatal(1,"FAIL: first-burst SLVERR did not terminate writeback cleanly (err=%b done=%b busy=%b AW=%0d W=%0d)",
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
         $display("PASS: first-burst SLVERR terminates integrated writeback without issuing next AW");
+
+        // Repeat with an OKAY first response and SLVERR on the second burst.
+        // The controller must report failure and must not claim successful completion.
+        @(negedge clk);
+        fault_bresp_burst=1;
+        aw_write_count=0; w_write_count=0;
+        writeback_start=1;
+        while (!writeback_start_ready) @(negedge clk);
+        @(negedge clk); writeback_start=0;
+        cycles=0;
+        while (!writeback_error && !writeback_done && cycles<1000) begin
+            @(negedge clk); cycles=cycles+1;
+        end
+        repeat(3) @(negedge clk);
+        if (!writeback_error || writeback_done || writeback_busy ||
+            aw_write_count!=2 || w_write_count!=N*N || m_axi_awvalid)
+            $fatal(1,"FAIL: second-burst SLVERR handling failed (err=%b done=%b busy=%b AW=%0d W=%0d)",
+                writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
+        $display("PASS: second-burst SLVERR reports failure and suppresses done");
 
         // Restart under reset and verify the upstream reader rejects an early RLAST.
         @(negedge clk); resetb=0; op_start=0; writeback_start=0;
