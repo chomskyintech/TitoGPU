@@ -20,7 +20,7 @@ The command wrapper now accepts `cmd_accumulate` alongside `cmd_start`:
 - `cmd_accumulate=1`: add each current tile's partial sum to the corresponding result-memory entry. Use for subsequent K tiles.
 - `cmd_accumulate` is sampled when `cmd_start` is accepted while idle and held internally for the full command.
 - A command remains busy through compute and serialized result writeback. A new command cannot be accepted until the current command has completed.
-- The host must load the next tile's A and B operands while the wrapper is idle, then issue the next command.
+- The host must load the next tile's A and B operands while the wrapper is idle, then issue the next command. The write ingress uses `mem_wr_en` as valid and `mem_wr_ready` as ready; a producer must hold address/data stable until a write is accepted.
 - The result bank contains a complete output matrix after the last tile has completed. The host is responsible for issuing exactly one replace-mode command before any accumulate-mode commands.
 
 Accumulator arithmetic is fixed-width two's-complement arithmetic. With `ACC_W=32`, additions wrap modulo 2^32; this is not saturating arithmetic. Overflow detection and optional saturation are future work.
