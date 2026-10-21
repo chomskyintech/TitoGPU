@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 
+// Controller regression: reset/relaunch, cycle clamp, busy-write and busy-start protection.
 module tb_cgra_controller;
     reg clk, resetb;
     reg cfg_we;
