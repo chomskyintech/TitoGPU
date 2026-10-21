@@ -32,6 +32,7 @@ module tb_tito_systolic_dma_reader;
     integer b_ref [0:1][0:K-1][0:N-1];
     integer expected [0:N-1][0:N-1];
     integer i,j,k,t,checks,cycles,request_count;
+    integer mem_gap_cfg, mem_gap_countdown, response_beats, request_backpressure_cycles;
     integer signed mem_value;
 
     tito_systolic_dma_reader #(
@@ -76,12 +77,15 @@ module tb_tito_systolic_dma_reader;
             mem_addr_q <= 0;
             mem_len_q <= 0;
             mem_index <= 0;
+            mem_gap_countdown <= 0;
             rd_data_valid <= 1'b0;
             rd_data <= 0;
             rd_data_last <= 1'b0;
             request_count <= 0;
         end else begin
             rd_req_ready <= (cycles % 4 != 1);
+            if (rd_req_valid && !rd_req_ready)
+                request_backpressure_cycles <= request_backpressure_cycles + 1;
             if (rd_req_valid && rd_req_ready) begin
                 if (mem_active) begin
                     $display("FAIL: received overlapping read request");
@@ -91,22 +95,35 @@ module tb_tito_systolic_dma_reader;
                 mem_addr_q <= rd_req_addr;
                 mem_len_q <= rd_req_len;
                 mem_index <= 0;
+                mem_gap_countdown <= mem_gap_cfg;
                 rd_data_valid <= 1'b0;
                 request_count <= request_count + 1;
             end
-            if (mem_active && !rd_data_valid) begin
-                mem_value = operand_value(mem_addr_q,mem_index);
-                rd_data <= mem_value[DATA_W-1:0];
-                rd_data_last <= bad_last_mode ? (mem_index == 2) : (mem_index == mem_len_q-1);
-                rd_data_valid <= 1'b1;
-            end
             if (rd_data_valid && rd_data_ready) begin
+                response_beats <= response_beats + 1;
                 if (rd_data_last) begin
                     mem_active <= 1'b0;
                     rd_data_valid <= 1'b0;
                 end else begin
                     mem_index <= mem_index + 1'b1;
-                    rd_data_valid <= 1'b0;
+                    if (mem_gap_cfg == 0) begin
+                        mem_value = operand_value(mem_addr_q,mem_index+1'b1);
+                        rd_data <= mem_value[DATA_W-1:0];
+                        rd_data_last <= bad_last_mode ? (mem_index+1'b1 == 2) : (mem_index+1'b1 == mem_len_q-1);
+                        rd_data_valid <= 1'b1;
+                    end else begin
+                        rd_data_valid <= 1'b0;
+                        mem_gap_countdown <= mem_gap_cfg;
+                    end
+                end
+            end else if (mem_active && !rd_data_valid) begin
+                if (mem_gap_countdown > 0) begin
+                    mem_gap_countdown <= mem_gap_countdown - 1;
+                end else begin
+                    mem_value = operand_value(mem_addr_q,mem_index);
+                    rd_data <= mem_value[DATA_W-1:0];
+                    rd_data_last <= bad_last_mode ? (mem_index == 2) : (mem_index == mem_len_q-1);
+                    rd_data_valid <= 1'b1;
                 end
             end
         end
@@ -117,6 +134,10 @@ module tb_tito_systolic_dma_reader;
         op_start=0; a_base_addr=100; b_base_addr=200; op_tile_count=2;
         rd_req_ready=0; rd_data_valid=0; rd_data=0; rd_data_last=0; rd_error=0;
         result_rd_en=0; result_rd_addr=0; cycles=0; checks=0; request_count=0; bad_last_mode=0;
+        mem_gap_cfg=0; mem_gap_countdown=0; response_beats=0; request_backpressure_cycles=0;
+        if (!$value$plusargs("MEM_GAP=%d",mem_gap_cfg)) mem_gap_cfg=0;
+        if (mem_gap_cfg < 0) mem_gap_cfg=0;
+        $display("CONFIG: single-buffer memory response gap=%0d cycles between accepted beats",mem_gap_cfg);
         repeat(3) @(negedge clk);
         resetb=1;
 
@@ -167,8 +188,10 @@ module tb_tito_systolic_dma_reader;
                 checks=checks+1;
             end
         @(negedge clk); result_rd_en=0;
-        $display("PASS: DMA read frontend, 4 backpressured read requests, and %0d matrix outputs (%0d cycles)",
+        $display("PASS: single-buffer DMA frontend, 4 backpressured read requests, and %0d matrix outputs (%0d cycles)",
             checks,cycles);
+        $display("METRICS: single_buffer_total_cycles=%0d response_beats=%0d request_backpressure_cycles=%0d",
+            cycles,response_beats,request_backpressure_cycles);
 
         // Reset, then inject an early last marker. The frontend must fail closed.
         @(negedge clk); resetb=0; op_start=0;
