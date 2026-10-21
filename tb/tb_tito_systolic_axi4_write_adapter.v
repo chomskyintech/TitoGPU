@@ -142,12 +142,40 @@ module tb_tito_systolic_axi4_write_adapter;
         command(16'h0102,1);
         if (!error || error_code!==4'd2 || awvalid) $fatal(1,"FAIL: unaligned address not rejected");
         reset_dut();
-        command(16'h0FFC,2);
-        if (!error || error_code!==4'd4 || awvalid) $fatal(1,"FAIL: 4-KiB crossing not rejected");
-        reset_dut();
         command(16'h0100,257);
         if (!error || error_code!==4'd3 || awvalid) $fatal(1,"FAIL: >256 beats not rejected");
         $display("PASS: invalid command rejection");
+
+        // A 256-beat write starting at 0x0F00 must split into 64 + 192 beats.
+        // The first burst ends at 0x0FFC; the second begins at 0x1000.
+        reset_dut();
+        awready=1; wready=1;
+        command(16'h0F00,256);
+        tick();
+        if (!awvalid && awaddr!==16'h0F00) $fatal(1,"FAIL: first split AW missing");
+        if (awaddr!==16'h0F00 || awlen!==8'd63) $fatal(1,"FAIL: first split burst address/length");
+        tick(); // accept first AW
+        for (integer i=0; i<256; i=i+1) begin
+            push_word(i, i==255);
+            while (!wvalid) tick();
+            if (wdata!==i[31:0]) $fatal(1,"FAIL: split stream data order at %0d",i);
+            if (wlast !== ((i==63)||(i==255)))
+                $fatal(1,"FAIL: WLAST split placement at beat %0d",i);
+            tick();
+            if (i==63 || i==255) begin
+                bresp=2'b00; bvalid=1;
+                tick();
+                @(negedge clk); bvalid=0;
+                if (i==63) begin
+                    if (!awvalid || awaddr!==16'h1000 || awlen!==8'd191)
+                        $fatal(1,"FAIL: second split burst address/length");
+                    tick(); // accept second AW
+                end
+            end
+            @(negedge clk);
+        end
+        if (!done || error || busy) $fatal(1,"FAIL: split transaction did not complete");
+        $display("PASS: 256-beat stream splits at 4 KiB boundary (64 + 192 beats)");
         $display("PASS: AXI write-adapter unit regression");
         $finish;
     end
