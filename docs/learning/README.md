@@ -135,3 +135,7 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 17 — AXI4-Lite Control/Status Registers
 
 [Open the lesson](17-axi4lite-control-status.md). Learn register decoding, independent AW/W handshakes, command pulses, sticky status, W1C, and software-visible errors.
+
+## Lesson 18 — Software-Controlled TitoGPU System
+
+[Open the lesson](18-software-controlled-system.md). Follow AXI-Lite register programming through compute and AXI4 result writeback, then validate external-memory results against a reference matrix.
