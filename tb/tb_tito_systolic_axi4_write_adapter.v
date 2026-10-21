@@ -117,8 +117,8 @@ module tb_tito_systolic_axi4_write_adapter;
         push_word(32'hDEADBEEF,1);
         if (!wvalid || wdata!==32'hDEADBEEF || !wlast) $fatal(1,"FAIL: WLAST not on final beat");
         wready=1; tick(); @(negedge clk); wready=0;
-        if (bready) $fatal(1,"FAIL: BREADY before B response");
-        repeat(2) begin tick(); if (!bready) $fatal(1,"FAIL: BREADY not asserted while awaiting response"); end
+        if (done) $fatal(1,"FAIL: done asserted before B response handshake");
+        repeat(2) begin tick(); if (!bready || done) $fatal(1,"FAIL: response wait state incorrect"); end
         bresp=0; bvalid=1; tick(); @(negedge clk); bvalid=0;
         if (!done || error || busy) $fatal(1,"FAIL: successful B response status");
         $display("PASS: independent AW/W stalls, payload stability, WLAST, B response");
