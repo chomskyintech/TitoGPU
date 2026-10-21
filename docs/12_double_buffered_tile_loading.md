@@ -59,4 +59,4 @@ Check the [GitHub Actions history](https://github.com/chomskyintech/TitoGPU/acti
 - No timing, power, physical area, or performance-per-watt measurements.
 - Fatal memory/protocol errors require external reset; production abort/flush semantics remain future work.
 
-The next step after this milestone is to quantify overlap with cycle counters and then add a bus-specific adapter and workload-level measurements.
+The testbench now emits diagnostic cycle counters for total operation time, compute-busy cycles, operation-active/compute-idle cycles, memory-active cycles, accepted response beats, and request-backpressure cycles. These counters are a starting point for analysis, not a controlled latency sweep. The next step is to vary memory response cadence deterministically and compare single- and double-buffered paths under identical mock-memory timing before adding a bus-specific adapter and workload-level measurements.
