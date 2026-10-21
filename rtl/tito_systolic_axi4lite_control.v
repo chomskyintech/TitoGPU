@@ -1,6 +1,6 @@
 // Minimal AXI4-Lite control/status register bank for TitoGPU.
 // 32-bit data bus, independent AW/W capture, single outstanding B and R responses.
-\`default_nettype none
+`default_nettype none
 module tito_systolic_axi4lite_control #(
     parameter integer ADDR_W=32,
     parameter integer TILE_COUNT_W=8,
@@ -233,4 +233,4 @@ module tito_systolic_axi4lite_control #(
             $error("TILE_COUNT_W must be between 1 and 32");
     end
 endmodule
-\`default_nettype wire
+`default_nettype wire
