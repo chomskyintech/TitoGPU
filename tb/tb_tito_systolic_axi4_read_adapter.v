@@ -120,7 +120,7 @@ module tb_tito_systolic_axi4_read_adapter;
         end
         repeat(2) begin
             tick();
-            if (!m_axi_arvalid || m_axi_araddr !== 32'h40 || m_axi_arlen !== 8'd3) begin
+            if (!m_axi_arvalid || m_axi_araddr !== 32'h10 || m_axi_arlen !== 8'd3) begin
                 $display("FAIL: AR payload changed while stalled");
                 $fatal(1);
             end
