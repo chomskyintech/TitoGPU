@@ -44,13 +44,16 @@ module tb_tito_systolic_axi4lite_system;
     if(rd_active) $fatal(1,"unexpected overlapping AXI read address");
     if(arsize!=2 || arburst!=1 || arid!=0) $fatal(1,"bad AR fields");
     rd_active<=1; rd_base<=araddr_m; rd_len<=arlen; rd_index<=0; rvalid_m_q<=0;
-   end else if(rd_active && (!rvalid_m_q || (rvalid_m_q && rready_m))) begin
+   end else if(rd_active && rvalid_m_q && rready_m) begin
+    if(rlast_q) begin rd_active<=0; rvalid_m_q<=0; end
+    else begin
+     rd_index<=rd_index+1'b1;
+     rdata_m_q<={mem[rd_base+(rd_index+1'b1)*4+3],mem[rd_base+(rd_index+1'b1)*4+2],mem[rd_base+(rd_index+1'b1)*4+1],mem[rd_base+(rd_index+1'b1)*4]};
+     rid_q<=0; rresp_m_q<=0; rlast_q<=((rd_index+1'b1)==rd_len); rvalid_m_q<=1;
+    end
+   end else if(rd_active && !rvalid_m_q) begin
     rdata_m_q<={mem[rd_base+rd_index*4+3],mem[rd_base+rd_index*4+2],mem[rd_base+rd_index*4+1],mem[rd_base+rd_index*4]};
     rid_q<=0; rresp_m_q<=0; rlast_q<=(rd_index==rd_len); rvalid_m_q<=1;
-    if(rvalid_m_q && rready_m) begin
-     if(rlast_q) begin rd_active<=0; rvalid_m_q<=0; end
-     else rd_index<=rd_index+1'b1;
-    end
    end
    if(awvalid_m && awready_m) begin
     if(awsize!=2 || awburst!=1 || awid!=0) $fatal(1,"bad AW fields");
