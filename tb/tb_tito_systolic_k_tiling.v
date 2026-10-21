@@ -16,7 +16,7 @@ module tb_tito_systolic_k_tiling;
     reg [MEM_ADDR_W-1:0] mem_wr_addr;
     reg [DATA_W-1:0] mem_wr_data;
     reg [RESULT_ADDR_W-1:0] result_rd_addr;
-    wire busy, done, result_rd_valid;
+    wire busy, done, result_rd_valid, mem_wr_ready;
     wire [ACC_W-1:0] result_rd_data;
 
     integer expected [0:N-1][0:N-1];
@@ -27,7 +27,7 @@ module tb_tito_systolic_k_tiling;
         .MEM_ADDR_W(MEM_ADDR_W), .RESULT_ADDR_W(RESULT_ADDR_W)
     ) dut (
         .clk(clk), .resetb(resetb),
-        .mem_wr_en(mem_wr_en), .mem_wr_bank(mem_wr_bank),
+        .mem_wr_en(mem_wr_en), .mem_wr_ready(mem_wr_ready), .mem_wr_bank(mem_wr_bank),
         .mem_wr_addr(mem_wr_addr), .mem_wr_data(mem_wr_data),
         .cmd_start(cmd_start), .cmd_accumulate(cmd_accumulate),
         .busy(busy), .done(done),
