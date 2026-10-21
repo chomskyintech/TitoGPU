@@ -2,25 +2,28 @@
 
 ## Purpose
 
-`rtl/tito_systolic_axi4_double_buffered_accelerator.v` wires the AXI4 read-channel subset to the existing double-buffered tiled accelerator. It exposes the operation controls and result read port, plus AXI AR and R channels. The generic request/response wires are internal to the wrapper.
+`rtl/tito_systolic_axi4_double_buffered_accelerator.v` connects the double-buffered tiled accelerator to a restricted AXI4 read interface. It exposes operation controls, result reads, and AXI AR/R channels. The internal frontend and systolic datapath retain their 8-bit operand interface.
 
-## Data path
+## Data path and bus widths
 
-`op_start` and tile base addresses enter `tito_systolic_double_buffered_dma_reader`. That frontend schedules A/B tile requests, manages ping-pong buffers, validates the expected final beat, and consumes returned data. `tito_systolic_axi4_read_adapter` translates each generic request to an AXI AR burst and forwards valid R beats into the frontend.
+`op_start` and the tile base addresses enter `tito_systolic_double_buffered_dma_reader`. That frontend schedules A/B tile requests, manages ping-pong buffers, validates logical burst completion, and consumes returned operands. The AXI adapter translates byte-addressed logical requests into wider AXI bursts and unpacks each accepted R beat into logical operands.
 
-The current integrated test uses an 8-bit AXI data bus for signed INT8 operands. This is a known prototype limitation. The next hardware milestone is to widen the external AXI RDATA channel to 32 bits while keeping the frontend and compute operand width at 8 bits.
+The integrated wrapper defaults to `DATA_W=8` and `AXI_DATA_W=32`. Four signed INT8 operands are packed into each AXI beat in low-to-high byte-lane order. For the current N=4, K=4 case, a 16-byte operand tile uses four AXI beats (`ARLEN=3`, `ARSIZE=2`), while the frontend still consumes 16 logical operands.
 
-## Next milestone: 32-bit AXI read width conversion
+## Verification
 
-Follow the [32-bit AXI read width conversion contract](16_axi4_32bit_read_width_contract.md). For the current N=4, K=4 case, each 16-byte operand tile should be returned in four 32-bit AXI beats (`ARLEN=3`, `ARSIZE=2`) and unpacked into the same 16 logical INT8 operands. The integrated test must preserve the independent matrix reference check and add lane-order, backpressure, and AXI response fault tests.
+The focused width-converter test checks:
+- byte-lane ordering with distinct values, including negative signed INT8 representations;
+- stable data and lane selection during downstream backpressure;
+- logical `rd_data_last` on the final operand only;
+- early and missing AXI `RLAST`, unexpected `RID`, and non-OKAY `RRESP`.
 
-## Existing verification baseline
-
-`tb/tb_tito_systolic_axi4_double_buffered_accelerator.v` provides a minimal AXI memory model and currently checks:
-- four 16-beat bursts for A0, B0, A1, B1;
-- AR payload fields and request backpressure;
-- all 16 final matrix outputs against an independent reference;
-- early RLAST fault detection by the upstream generic frontend.
+The end-to-end test checks:
+- four bursts in A0, B0, A1, B1 order, with byte addresses 100, 200, 116, and 216;
+- four AXI beats per burst and correct `ARLEN`, `ARSIZE`, `ARBURST`, and `ARID`;
+- all 16 matrix outputs against an independent reference calculation;
+- early RLAST fault detection by the integrated path;
+- configurable R-channel gaps via `MEM_GAP=0`, `2`, and `5`.
 
 Run:
 
@@ -29,11 +32,12 @@ make sim
 make synth-axi
 ```
 
-Check GitHub Actions for a completed run against the exact commit before calling the full milestone verified.
+The [RTL regression workflow](https://github.com/chomskyintech/TitoGPU/actions/workflows/rtl-regression.yml) runs both commands. Check its result against the exact branch-head commit before describing a later change as verified.
+
+## Next milestone
+
+AXI writeback remains separate and should start only after this read-path milestone is stable. Follow the [AXI writeback design contract](15_axi4_writeback_design_contract.md) when starting that work.
 
 ## Limitations
 
-- The current end-to-end wrapper uses an 8-bit AXI bus and has no width converter or byte-lane unpacker.
-- One outstanding burst, fixed ARID=0, no AXI writes, no cache, no timeout, no retries, no burst splitting at 4-KiB boundaries, and no abort/flush protocol.
-- The testbench is a functional mock memory, not a vendor AXI VIP or interconnect compliance test.
-- No physical timing, area, power, or performance-per-watt result is available.
+The interface is a read-channel subset, not a production memory subsystem. It has one outstanding burst, fixed ARID=0, no AXI writes, no cache, no retries/timeouts, no abort/flush protocol, and no 4-KiB burst splitting. Generic synthesis is not physical PPA evidence.
