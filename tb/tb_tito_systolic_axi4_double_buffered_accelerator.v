@@ -12,7 +12,28 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
     reg result_rd_en;
     reg [RESULT_ADDR_W-1:0] result_rd_addr;
     wire [ACC_W-1:0] result_rd_data;
-    wire result_rd_valid;
+    wire result_rd_valid, result_rd_ready;
+    reg writeback_start;
+    reg [ADDR_W-1:0] writeback_base_addr;
+    wire writeback_start_ready, writeback_busy, writeback_done, writeback_error;
+
+    wire [ID_W-1:0] m_axi_awid;
+    wire [ADDR_W-1:0] m_axi_awaddr;
+    wire [7:0] m_axi_awlen;
+    wire [2:0] m_axi_awsize;
+    wire [1:0] m_axi_awburst;
+    wire m_axi_awvalid;
+    reg m_axi_awready;
+    wire [AXI_DATA_W-1:0] m_axi_wdata;
+    wire [AXI_DATA_W/8-1:0] m_axi_wstrb;
+    wire m_axi_wlast, m_axi_wvalid;
+    reg m_axi_wready;
+    reg [1:0] m_axi_bresp;
+    reg m_axi_bvalid;
+    wire m_axi_bready;
+    reg [ACC_W-1:0] write_mem [0:N*N-1];
+    integer aw_write_count, w_write_count, write_phase, write_resp_delay;
+    reg write_resp_pending;
 
     wire [ID_W-1:0] m_axi_arid;
     wire [ADDR_W-1:0] m_axi_araddr;
@@ -48,7 +69,16 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         .op_start(op_start), .a_base_addr(a_base_addr), .b_base_addr(b_base_addr),
         .op_tile_count(op_tile_count), .op_busy(op_busy), .op_done(op_done), .op_error(op_error),
         .result_rd_en(result_rd_en), .result_rd_addr(result_rd_addr),
-        .result_rd_data(result_rd_data), .result_rd_valid(result_rd_valid),
+        .result_rd_data(result_rd_data), .result_rd_valid(result_rd_valid), .result_rd_ready(result_rd_ready),
+        .writeback_start(writeback_start), .writeback_base_addr(writeback_base_addr),
+        .writeback_start_ready(writeback_start_ready), .writeback_busy(writeback_busy),
+        .writeback_done(writeback_done), .writeback_error(writeback_error),
+        .m_axi_awid(m_axi_awid), .m_axi_awaddr(m_axi_awaddr), .m_axi_awlen(m_axi_awlen),
+        .m_axi_awsize(m_axi_awsize), .m_axi_awburst(m_axi_awburst),
+        .m_axi_awvalid(m_axi_awvalid), .m_axi_awready(m_axi_awready),
+        .m_axi_wdata(m_axi_wdata), .m_axi_wstrb(m_axi_wstrb), .m_axi_wlast(m_axi_wlast),
+        .m_axi_wvalid(m_axi_wvalid), .m_axi_wready(m_axi_wready),
+        .m_axi_bresp(m_axi_bresp), .m_axi_bvalid(m_axi_bvalid), .m_axi_bready(m_axi_bready),
         .m_axi_arid(m_axi_arid), .m_axi_araddr(m_axi_araddr),
         .m_axi_arlen(m_axi_arlen), .m_axi_arsize(m_axi_arsize),
         .m_axi_arburst(m_axi_arburst), .m_axi_arvalid(m_axi_arvalid),
@@ -167,6 +197,62 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         end
     end
 
+    // Write-side memory model: independent AW/W stalls and delayed B response.
+    always @(posedge clk or negedge resetb) begin
+        if (!resetb) begin
+            m_axi_awready<=0; m_axi_wready<=0; m_axi_bresp<=0; m_axi_bvalid<=0;
+            aw_write_count<=0; w_write_count<=0; write_phase<=0;
+            write_resp_delay<=0; write_resp_pending<=0;
+        end else begin
+            if (writeback_busy) begin
+                if (write_phase<3) begin
+                    m_axi_awready<=0;
+                    m_axi_wready<=0;
+                end else begin
+                    m_axi_awready<=1;
+                    m_axi_wready<=((write_phase%3)!=1);
+                end
+                write_phase<=write_phase+1;
+            end else begin
+                m_axi_awready<=0;
+                m_axi_wready<=0;
+                write_phase<=0;
+            end
+
+            if (m_axi_awvalid && m_axi_awready) begin
+                if (m_axi_awid!==0 || m_axi_awaddr!==16'd300 ||
+                    m_axi_awlen!==8'd15 || m_axi_awsize!==3'd2 ||
+                    m_axi_awburst!==2'b01)
+                    $fatal(1,"FAIL: incorrect result write AW payload");
+                aw_write_count<=aw_write_count+1;
+            end
+
+            if (m_axi_wvalid && m_axi_wready) begin
+                if (w_write_count>=N*N) $fatal(1,"FAIL: too many result W beats");
+                if (m_axi_wstrb!==4'hf || m_axi_wlast!==(w_write_count==N*N-1))
+                    $fatal(1,"FAIL: bad result WSTRB/WLAST at beat %0d",w_write_count);
+                write_mem[w_write_count]<=m_axi_wdata;
+                w_write_count<=w_write_count+1;
+                if (m_axi_wlast) begin
+                    write_resp_pending<=1;
+                    write_resp_delay<=3;
+                end
+            end
+
+            if (write_resp_pending && !m_axi_bvalid) begin
+                if (write_resp_delay>0)
+                    write_resp_delay<=write_resp_delay-1;
+                else begin
+                    m_axi_bvalid<=1;
+                    m_axi_bresp<=2'b00;
+                    write_resp_pending<=0;
+                end
+            end
+            if (m_axi_bvalid && m_axi_bready)
+                m_axi_bvalid<=0;
+        end
+    end
+
     task launch_operation;
         begin
             @(negedge clk); op_start=1;
@@ -175,7 +261,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
     endtask
 
     initial begin
-        clk=0; resetb=0; op_start=0;
+        clk=0; resetb=0; op_start=0; writeback_start=0; writeback_base_addr=300;
         a_base_addr=100; b_base_addr=200; op_tile_count=2;
         result_rd_en=0; result_rd_addr=0;
         bad_last_mode=0; gap_cfg=0; cycles=0; checks=0;
@@ -229,8 +315,31 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         $display("PASS: AXI-integrated double-buffered two-tile matmul, %0d outputs, %0d cycles",
             checks,cycles);
 
+        // Stream the actual result memory through AXI writeback and compare external memory.
+        @(negedge clk); writeback_start=1;
+        while (!writeback_start_ready) @(negedge clk);
+        @(negedge clk); writeback_start=0;
+        cycles=0;
+        while (!writeback_done && !writeback_error && cycles<1000) begin
+            @(negedge clk); cycles=cycles+1;
+        end
+        if (!writeback_done || writeback_error || writeback_busy ||
+            aw_write_count!=1 || w_write_count!=N*N) begin
+            $display("FAIL: writeback status done=%b error=%b busy=%b AW=%0d W=%0d",
+                writeback_done,writeback_error,writeback_busy,aw_write_count,w_write_count);
+            $fatal(1);
+        end
+        for (i=0;i<N;i=i+1)
+            for (j=0;j<N;j=j+1)
+                if ($signed(write_mem[i*N+j]) !== expected[i][j]) begin
+                    $display("FAIL writeback[%0d,%0d]: got %0d expected %0d",
+                        i,j,$signed(write_mem[i*N+j]),expected[i][j]);
+                    $fatal(1);
+                end
+        $display("PASS: actual accelerator results written to external memory, %0d words",w_write_count);
+
         // Restart under reset and verify the upstream reader rejects an early RLAST.
-        @(negedge clk); resetb=0; op_start=0;
+        @(negedge clk); resetb=0; op_start=0; writeback_start=0;
         repeat(3) @(negedge clk);
         bad_last_mode=1; ar_count=0; resetb=1;
         launch_operation();
