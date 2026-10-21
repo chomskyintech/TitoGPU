@@ -59,15 +59,17 @@ make sim
 make synth-double-buffered
 ```
 
-A passing result proves the tested sequence and overlap condition; it does not establish throughput or PPA for a physical implementation.
+A passing result proves the tested sequence and overlap condition; it does not establish throughput or PPA for a physical implementation. The test prints diagnostic counters, but the current mock memory still uses one specific response cadence; it is not yet a latency sweep.
 
 ## 5. Exercises
 
 1. **Trace:** For three K tiles, list the buffer used for each compute and each prefetch. The expected sequence is compute buffer 0 / fill buffer 1, then compute buffer 1 / fill buffer 0, then compute buffer 0.
 2. **Race analysis:** Why must the compute-buffer selection remain stable through result writeback? What could happen if a later descriptor changed it during a compute?
 3. **Stall analysis:** Modify the memory model to insert a 10-cycle pause before returning B1. Confirm the controller waits without launching tile 1 early.
-4. **Performance measurement:** Add cycle counters for total operation cycles, compute-busy cycles, and memory-response cycles. Report the overlap and idle gap rather than claiming performance from simulation alone.
-5. **Stretch:** Define an abort protocol that drains or cancels a read response, marks partial results invalid, and allows a later operation without asserting global reset.
+4. **Read the counters:** The testbench now reports total operation cycles, cycles the compute core is busy, cycles the operation is active while the core is idle, cycles the memory model is active, accepted response beats, and request-backpressure cycles. Run `make sim` and find the `METRICS:` line for this test. Explain which counters overlap and why they must not simply be added together.
+5. **Controlled latency experiment:** Change the mock memory so response beats have a deterministic gap, then rerun the exact same two-tile workload. Record the memory response cadence alongside the counters. A useful follow-up is to run both the single-buffered and double-buffered designs with the *same* memory timing model before comparing cycle totals.
+6. **Stretch:** Define an abort protocol that drains or cancels a read response, marks partial results invalid, and allows a later operation without asserting global reset.
+7. **Stretch:** Define an abort protocol that drains or cancels a read response, marks partial results invalid, and allows a later operation without asserting global reset.
 
 ## 6. Limitations
 
