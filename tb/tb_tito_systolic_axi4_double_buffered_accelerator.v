@@ -394,6 +394,25 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
         $display("PASS: second-burst SLVERR reports failure and suppresses done");
 
+        // Recovery check: a new command after an error clears old status and succeeds
+        // without resetting the accelerator or the AXI writeback path.
+        @(negedge clk);
+        fault_test_mode=0; inject_bresp_error=0;
+        writeback_base_addr=16'd300;
+        aw_write_count=0; w_write_count=0;
+        writeback_start=1;
+        while (!writeback_start_ready) @(negedge clk);
+        @(negedge clk); writeback_start=0;
+        cycles=0;
+        while (!writeback_done && !writeback_error && cycles<1000) begin
+            @(negedge clk); cycles=cycles+1;
+        end
+        if (!writeback_done || writeback_error || writeback_busy ||
+            aw_write_count!=1 || w_write_count!=N*N)
+            $fatal(1,"FAIL: writeback did not recover on a fresh command (err=%b done=%b busy=%b AW=%0d W=%0d)",
+                writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
+        $display("PASS: writeback can be relaunched successfully after BRESP error without reset");
+
         // Restart under reset and verify the upstream reader rejects an early RLAST.
         @(negedge clk); resetb=0; op_start=0; writeback_start=0;
         repeat(3) @(negedge clk);
