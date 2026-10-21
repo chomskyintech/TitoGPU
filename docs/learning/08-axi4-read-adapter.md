@@ -51,4 +51,4 @@ Attempt the exercises before opening the answers. Record your predictions and te
 
 ## Evidence and limitations
 
-This lesson documents the standalone adapter and its protocol-focused test. It does not imply full AXI4 compliance or top-level accelerator integration. The final CI run, tested commit, and remaining limitations must be recorded here after verification completes.
+This lesson documents the standalone adapter and its protocol-focused test. It does not imply full AXI4 compliance or top-level accelerator integration. Verified test/Makefile commit: [\`1946de2\`](https://github.com/chomskyintech/TitoGPU/commit/1946de28bee3ebe5c1cae71848b066abf18a0d02). [CI run #173](https://github.com/chomskyintech/TitoGPU/actions/runs/39539898394) passed the full simulation and generic synthesis. Limitations remain: this is a restricted read-channel subset, not full AXI4 compliance or top-level integration.
