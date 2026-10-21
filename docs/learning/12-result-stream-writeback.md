@@ -63,6 +63,6 @@ The standalone write controller test covers AW/W stalls, stable payloads, WLAST,
 
 ## Exit criteria and limitations
 
-You can explain the synchronous-read pipeline, the role of the pending flag and one-word buffer, how WREADY backpressure is propagated, and why a terminal counter value must be representable. The standalone bridge is simulation- and synthesis-tested, but it is not yet connected to the actual accelerator wrapper. The next milestone is wrapper integration with explicit arbitration between host result reads and writeback reads, followed by a true compute-to-external-memory end-to-end test.
+You can explain the synchronous-read pipeline, the role of the pending flag and one-word buffer, how WREADY backpressure is propagated, and why a terminal counter value must be representable. The bridge is now integrated into the actual accelerator wrapper. The integrated regression computes a two-tile matrix, checks the local result memory against an independent reference, writes the results to external memory, and compares all output words. See [Lesson 13 — integrated AXI writeback](13-integrated-axi-writeback.md) for the wrapper arbitration and end-to-end verification.
 
 Generic synthesis is not physical timing, area, power or performance-per-watt evidence.
