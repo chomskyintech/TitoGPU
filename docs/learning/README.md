@@ -94,3 +94,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 08 — AXI4 Read Adapter
 
 [Open the lesson](08-axi4-read-adapter.md). Learn beat-address to byte-address conversion, AXI burst fields, independent AR/R handshakes, and response-error handling.
+
+
+## Lesson 09 — End-to-End AXI Read Integration
+
+[Open the lesson](09-axi4-integration.md). Learn how the AXI adapter, double-buffered tile scheduler, and result reference test work together.
