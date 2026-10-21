@@ -233,3 +233,14 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Methodology warning: the current mock-memory response cadence is unchanged. These counters are diagnostic; they are not a latency sweep and do not establish speedup, throughput, physical area, timing, power, or performance per watt.
 - Learning material: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
 - Next step: run deterministic memory response-gap modes and compare single- and double-buffered designs using identical memory timing.
+
+
+## 2026-10-21 — Deterministic double-buffered memory-latency sweep added; CI pending
+
+- Branch: `feature/tito-systolic-mac`
+- Testbench: `tb/tb_tito_systolic_double_buffered_dma_reader.v` accepts `+MEM_GAP=N`, inserting N idle cycles between accepted response beats in its synthetic memory model.
+- Regression: `make sim` runs the same two-tile workload at `MEM_GAP=0`, `2`, and `5`. Every mode must preserve all 16 reference-model outputs and detect the intentionally malformed early-last response. The zero-gap mode requires the next-tile request to overlap compute; slower modes may be memory-limited.
+- Instrumentation: reports operation cycles, compute-busy cycles, operation-active/compute-idle cycles, memory-active cycles, response beats, and request-backpressure cycles.
+- CI status: pending; do not treat this sweep as verified until the workflow completes.
+- Interpretation limits: this is a synthetic latency experiment on the double-buffered design only. It is not a fair comparison with the single-buffered path until both testbenches use identical memory timing, backpressure, workload, and cycle-count boundaries. No physical PPA or performance-per-watt claim is supported.
+- Study guide: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
