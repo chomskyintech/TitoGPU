@@ -1,16 +1,25 @@
 # Initial architecture proposal
 
-**Status: proposed; not yet frozen.** This document separates confirmed TitoRV facts from TitoGPU design choices that remain open.
+**Status: proposed; not yet frozen.** This document separates inspected source facts from decisions still to be made.
 
-## System concept
+## Existing compute block
 
-The intended system has three conceptual layers:
+TitoRV's `cgra-standalone` branch contains a bus-independent 2x2 CGRA:
+- Four registered processing elements.
+- Eight 32-bit external operand inputs.
+- Eight configuration contexts per PE.
+- Synchronous routing from registered PE results.
+- A controller with start, busy, done, cycle index, and latched input operands.
+- A directed testbench mapping a four-element signed INT8 dot product into four parallel multiplies and two reduction stages.
 
-1. **CPU control:** TitoRV runs software, prepares commands, and handles completion or errors.
-2. **Accelerator control:** a small controller validates commands and sequences compute.
-3. **Compute and storage:** INT8 MAC datapath(s), local operand/accumulator storage, and eventually an explicit data-movement path.
+The source and known open questions are documented in [the CGRA audit](02_existing_cgra_audit.md). The implementation is the current candidate compute block, not yet a verified or production-ready accelerator.
 
-The first implementation should be verified as a standalone compute block before adding a CPU bus or system memory dependency.
+## Proposed system layers
+
+1. **CPU control:** TitoRV runs software, prepares operands/configuration, launches the accelerator, and reads results.
+2. **Peripheral wrapper:** a separately verified AXI-Lite slave maps bus transactions to CGRA configuration, operand, status, and result signals.
+3. **CGRA datapath:** the existing PE array and context controller, kept bus-independent.
+4. **Future data movement:** a separate memory/DMA path may be considered if measurements show CPU-programmed operand transfers are a bottleneck.
 
 ## TitoRV observations
 
@@ -21,31 +30,30 @@ Inspection of `tapeout_project/riscv_core.v` on TitoRV's `master` showed:
 - Retirement and trap diagnostic outputs.
 - No documented burst or independent DMA master in this core module.
 
-These observations are limited to the inspected module. They do not establish what the system top-level, memory subsystem, or `cgra-standalone` branch provides.
+These observations are limited to the inspected module. The system top-level, memory subsystem, and `cgra-standalone` integration still need separate inspection.
 
-## Recommended block boundaries
+## Interfaces and design choices
 
-### INT8 MAC primitive
-Inputs should explicitly define signed operand interpretation, accumulator input, enable/valid semantics, and reset if stateful. Output width and overflow semantics must be specified mathematically and tested independently.
+### CGRA configuration
+Each context word currently encodes operation in [3:0], source A in [7:4], source B in [11:8], enable in [12], and reserves [31:13]. Selectors address zero, eight external inputs, four registered PE outputs, and constant one. Reserved-bit handling needs a defined policy.
 
-### Compute tile
-The tile wraps one or more MAC lanes and defines transaction acceptance, result validity, and backpressure. It should have deterministic behaviour when input-valid is held while the tile is not ready.
+### Arithmetic
+The current `MUL8` interprets the low byte of each source as signed INT8 and sign-extends the 16-bit product to 32 bits. ADD/SUB use 32-bit arithmetic. Confirm overflow semantics and clarify that `OP_SHR` currently behaves as arithmetic right shift before freezing the operation specification.
 
-### Controller and register interface
-Do not define final register offsets until command format, storage model, and error behaviour are agreed. The control interface should be easy to drive from a simulation testbench and should not depend on undocumented CPU internals.
+### Bus wrapper
+The existing `cgra_standalone/docs/integration.md` proposes an AXI-Lite register map, but that wrapper is not part of the inspected standalone CGRA RTL. Treat offsets as proposals until implemented and tested. Keep bus protocol logic outside the PE and array modules.
 
 ### Memory movement
-Bulk tensor movement should not be designed around repeated CPU loads/stores without measuring the bottleneck. A dedicated DMA-style path may be appropriate later, but requires an explicit system-level memory arbitration and address-protection design. No such path is claimed to exist yet.
+Bulk tensor movement should not be designed around repeated CPU loads/stores without measuring the bottleneck. A dedicated DMA-style path may be appropriate later, but requires explicit memory arbitration, address policy, and tests. No such path is claimed to exist yet.
 
-## Decisions required before RTL integration
+## Decisions required before integration
 
-- Number of MAC lanes and supported operation shape.
-- Accumulator width and overflow/saturation behaviour.
-- Whether operands are streamed, loaded into local storage, or both.
-- Command completion and error signalling.
-- Bus protocol and register map.
-- How accelerator memory accesses are arbitrated with the CPU.
-- Whether `cgra-standalone` contains reusable compute or integration logic.
+- Source-of-truth strategy for the existing CGRA RTL and its licence.
+- Supported arithmetic operations and overflow behaviour.
+- Error behaviour for invalid contexts and out-of-range run lengths.
+- Exact register map and busy/start semantics.
+- System-level address decode and memory arbitration.
+- Whether a DMA-style path is justified by workload measurements.
 - Simulation and synthesis tools available in CI.
 
 ## Architecture rule
