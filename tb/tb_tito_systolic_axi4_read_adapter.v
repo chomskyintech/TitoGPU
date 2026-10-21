@@ -74,12 +74,7 @@ module tb_tito_systolic_axi4_read_adapter;
             m_axi_rdata=data_value; m_axi_rlast=last_value;
             m_axi_rresp=resp_value; m_axi_rid=id_value; m_axi_rvalid=1;
             #1;
-            if (resp_value == 2'b00 && id_value == 0) begin
-                if (!rd_data_valid || rd_data !== data_value || rd_data_last !== last_value) begin
-                    $display("FAIL: valid R beat was not forwarded correctly");
-                    $fatal(1);
-                end
-            end else begin
+            if (resp_value != 2'b00 || id_value != 0) begin
                 if (!rd_error) begin
                     $display("FAIL: bad RRESP/RID did not raise rd_error");
                     $fatal(1);
@@ -90,6 +85,17 @@ module tb_tito_systolic_axi4_read_adapter;
                 $fatal(1);
             end
             tick();
+            if (resp_value == 2'b00 && id_value == 0) begin
+                if (!rd_data_valid || rd_data !== data_value || rd_data_last !== last_value) begin
+                    $display("FAIL: buffered R beat was not presented correctly");
+                    $fatal(1);
+                end
+            end else begin
+                if (!rd_error) begin
+                    $display("FAIL: bad RRESP/RID did not raise rd_error");
+                    $fatal(1);
+                end
+            end
             @(negedge clk); m_axi_rvalid=0; m_axi_rlast=0;
         end
     endtask
@@ -105,7 +111,7 @@ module tb_tito_systolic_axi4_read_adapter;
         // Address channel must hold its request under AR backpressure.
         @(negedge clk); rd_req_addr=32'h10; rd_req_len=4; rd_req_valid=1;
         #1;
-        if (!m_axi_arvalid || m_axi_araddr !== 32'h40 ||
+        if (!m_axi_arvalid || m_axi_araddr !== 32'h10 ||
             m_axi_arlen !== 8'd3 || m_axi_arsize !== 3'd2 ||
             m_axi_arburst !== 2'b01 || m_axi_arid !== 0) begin
             $display("FAIL: AXI AR fields incorrect");
@@ -126,8 +132,13 @@ module tb_tito_systolic_axi4_read_adapter;
         @(negedge clk); m_axi_rid=0; m_axi_rresp=0; m_axi_rdata=32'h12345678;
         m_axi_rlast=0; m_axi_rvalid=1; rd_data_ready=0;
         #1;
-        if (!rd_data_valid || m_axi_rready) begin
-            $display("FAIL: R-channel backpressure not propagated");
+        if (rd_data_valid || !m_axi_rready) begin
+            $display("FAIL: empty adapter buffer did not accept first R beat");
+            $fatal(1);
+        end
+        tick();
+        if (!rd_data_valid || m_axi_rready || rd_data !== 32'h12345678) begin
+            $display("FAIL: buffered R data not held stable during downstream stall");
             $fatal(1);
         end
         repeat(2) begin
