@@ -2,30 +2,37 @@
 
 ## Purpose
 
-`rtl/tito_systolic_axi4_read_adapter.v` translates TitoGPU's generic single-outstanding read request/response interface into a restricted AXI4 read-channel interface. It is intended to sit between `tito_systolic_dma_reader` and an AXI4 memory/interconnect port; it is not yet integrated into the end-to-end accelerator wrapper.
+`rtl/tito_systolic_axi4_read_adapter.v` converts the accelerator frontend's logical operand stream into a restricted AXI4 read-channel interface. The frontend and compute datapath can use 8-bit INT8 operands while the external AXI bus uses a wider data width.
 
 ## Interface contract
 
-- Generic `rd_req_addr` is measured in DATA_W-bit beats. AXI `ARADDR` is byte-addressed, so the adapter shifts the generic address left by `log2(DATA_W/8)`.
-- `ARLEN = rd_req_len - 1`, as required by AXI. The current frontend issues non-zero tile lengths of at most 256 beats; the AXI4 `ARLEN` field is 8 bits.
-- `ARSIZE` is `log2(DATA_W/8)`; `ARBURST` is INCR; `ARID` is fixed to zero.
-- One read burst may be outstanding. The next request is blocked until an accepted R beat with `RLAST=1` completes the current burst.
-- R data is forwarded only when `RRESP=OKAY` and `RID=0`. A non-OKAY response or unexpected RID raises `rd_error`. Error beats are consumed even if the downstream data consumer is stalled, so the upstream frontend can enter its fatal error state.
-- `RLAST` is forwarded unchanged. The upstream DMA frontend checks that it arrives on the expected beat.
-- Reset clears the adapter's outstanding-read state.
+- `DATA_W` is the logical operand width; `AXI_DATA_W` is the external AXI RDATA width. The width ratio must be a power of two.
+- Generic `rd_req_addr` is a byte address. AXI `ARADDR` uses the same byte address; the adapter does not shift it.
+- Generic `rd_req_len` counts logical operands. The adapter converts it to `ceil(rd_req_len / LANES)` AXI beats, where `LANES = AXI_DATA_W / DATA_W`.
+- `ARLEN` is AXI beats minus one; `ARSIZE = log2(AXI_DATA_W/8)`; `ARBURST` is INCR; `ARID` is fixed to zero.
+- One read burst may be outstanding. Addresses must be aligned to the external beat width, and a request may not cross a 4-KiB boundary. Invalid requests become a fatal `rd_error` instead of hanging the frontend.
+- Each accepted AXI beat is buffered and unpacked low lane first. The buffer and lane index remain stable under downstream backpressure, and a new AXI beat is not accepted until the current beat's logical operands have been consumed.
+- The adapter checks `RID`, `RRESP`, and `RLAST` against the expected AXI beat count. Early or missing `RLAST` and response faults are fatal.
+- The frontend sees `rd_data_last` only on the final logical operand, not merely on the final byte lane of every AXI beat.
+- Reset clears outstanding-transfer, lane-buffer, and error state.
+
+## Current integrated configuration
+
+The wrapper keeps `DATA_W=8` and defaults `AXI_DATA_W=32`. One AXI R beat contains four INT8 operands in byte-lane order: `RDATA[7:0]`, `RDATA[15:8]`, `RDATA[23:16]`, and `RDATA[31:24]`. For a 16-operand tile, the adapter issues four AXI beats (`ARLEN=3`, `ARSIZE=2)).
 
 ## Verification
 
-`tb/tb_tito_systolic_axi4_read_adapter.v` checks:
-1. AR payload values and stability while `ARREADY=0`.
-2. Beat-address to byte-address conversion, `ARLEN`, `ARSIZE`, INCR burst, and fixed ID.
-3. Backpressure propagation and stable R payload during downstream stalls.
-4. Successful completion on accepted `RLAST`.
-5. `SLVERR` handling while downstream data is stalled.
-6. Rejection of a response with an unexpected RID.
+Run:
 
-Run `make sim` and `make synth-axi`. The full regression and generic synthesis passed in [CI run #173](https://github.com/chomskyintech/TitoGPU/actions/runs/39539898394), using test/Makefile commit [\`1946de2\`](https://github.com/chomskyintech/TitoGPU/commit/1946de28bee3ebe5c1cae71848b066abf18a0d02).
+```sh
+make sim
+make synth-axi
+```
 
-## Explicit scope limits
+The regression includes the standalone adapter protocol tests, a focused 32-to-8 width-converter test (lane order, stalls on each lane, final logical marker, early/missing RLAST, bad RID, and non-OKAY RRESP), and the end-to-end two-tile matrix reference check. See the [32-bit read-width contract](16_axi4_32bit_read_width_contract.md) and [Lesson 10](learning/10-axi-width-conversion.md).
 
-This is an AXI4 **read-channel subset**, not a complete AXI4 master. It has no write channel, multiple outstanding transactions, IDs beyond fixed ID zero, cache, retry policy, timeout, burst splitting, 4-KiB-boundary splitting, or transaction-abort/flush mechanism. The adapter is not yet wired to the top-level double-buffered DMA frontend. The testbench is a protocol-focused mock, not a vendor interconnect or memory-system compliance test. Generic Yosys synthesis is not physical area, timing, or power evidence.
+Generic Yosys synthesis is not physical timing, area, or power evidence.
+
+## Scope limits
+
+This is still a restricted AXI4 read-channel subset: one outstanding burst, fixed ID zero, no writes, no retry/timeout/abort protocol, and no burst splitting at 4-KiB boundaries. The testbench is a functional mock, not vendor AXI VIP or an interconnect compliance test.
