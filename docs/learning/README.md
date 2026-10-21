@@ -125,3 +125,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 15 — AXI B-Response Fault Injection
 
 [Open the lesson](15-axi4-bresp-fault-injection.md). Learn how first- and second-burst SLVERR responses propagate to integrated writeback status and prevent false success.
+
+
+## Lesson 16 — Writeback Status and Recovery
+
+[Open the lesson](16-axi4-writeback-status-recovery.md). Learn the public status signal contract, sticky error semantics, one-cycle completion pulse, and safe recovery expectations.
