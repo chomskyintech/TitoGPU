@@ -266,3 +266,14 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Interpretation: the cycle reduction is nearly constant in absolute terms in these runs, while the percentage improvement decreases as memory latency dominates. These are controlled RTL simulation counts, not silicon performance, power, area, timing, or performance-per-watt results.
 - The additional `prefetch_beats_while_compute_busy` counter was added after this run and is being verified in a later CI run; it should distinguish request acceptance overlap from actual response-beat overlap.
 - Study guide: [Lesson 07 — Double-Buffered Tile Loading](learning/07-double-buffered-tile-loading.md).
+
+
+## 2026-10-21 — AXI4 read-channel adapter added; CI pending
+
+- Branch: `feature/tito-systolic-mac`
+- Added `rtl/tito_systolic_axi4_read_adapter.v`: restricted single-outstanding AXI4 read-channel adapter for the existing generic frontend contract.
+- Added `tb/tb_tito_systolic_axi4_read_adapter.v`: covers AR backpressure and stability, beat-to-byte address conversion, ARLEN/ARSIZE/ARBURST, R-channel backpressure, RLAST completion, SLVERR, and unexpected RID.
+- Added `make sim` and `make synth-axi` regression/synthesis targets.
+- Documentation: `docs/13_axi4_read_adapter.md` and [Lesson 08](learning/08-axi4-read-adapter.md).
+- CI status: pending. Do not mark the adapter verified until simulation and generic synthesis both complete successfully.
+- Limits: read-channel subset only; fixed ID zero, one outstanding burst, no AXI writes, timeout, burst splitting, abort/flush, or top-level double-buffered integration. Generic synthesis is not physical PPA.
