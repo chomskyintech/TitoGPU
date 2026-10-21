@@ -25,21 +25,22 @@ module tito_systolic_banked_scratchpad #(
 );
     reg [DATA_W-1:0] a_mem [0:N-1][0:K-1];
     reg [DATA_W-1:0] b_mem [0:N-1][0:K-1];
-    integer r, c, idx;
+    integer wr_row, wr_col, wr_idx;
+    integer rd_row, rd_col;
 
     always @(posedge clk) begin
         if (wr_en) begin
             if (!wr_bank) begin
                 if (wr_addr < N*K) begin
-                    r = wr_addr / K;
-                    idx = wr_addr % K;
-                    a_mem[r][idx] <= wr_data;
+                    wr_row = wr_addr / K;
+                    wr_idx = wr_addr % K;
+                    a_mem[wr_row][wr_idx] <= wr_data;
                 end
             end else begin
                 if (wr_addr < N*K) begin
-                    idx = wr_addr / N;
-                    c = wr_addr % N;
-                    b_mem[c][idx] <= wr_data;
+                    wr_idx = wr_addr / N;
+                    wr_col = wr_addr % N;
+                    b_mem[wr_col][wr_idx] <= wr_data;
                 end
             end
         end
@@ -50,12 +51,12 @@ module tito_systolic_banked_scratchpad #(
             a_rd_data <= {(N*DATA_W){1'b0}};
             b_rd_data <= {(N*DATA_W){1'b0}};
         end else if (rd_en) begin
-            for (r = 0; r < N; r = r + 1)
-                a_rd_data[r*DATA_W +: DATA_W] <=
-                    a_mem[r][a_rd_addr[r*K_ADDR_W +: K_ADDR_W]];
-            for (c = 0; c < N; c = c + 1)
-                b_rd_data[c*DATA_W +: DATA_W] <=
-                    b_mem[c][b_rd_addr[c*K_ADDR_W +: K_ADDR_W]];
+            for (rd_row = 0; rd_row < N; rd_row = rd_row + 1)
+                a_rd_data[rd_row*DATA_W +: DATA_W] <=
+                    a_mem[rd_row][a_rd_addr[rd_row*K_ADDR_W +: K_ADDR_W]];
+            for (rd_col = 0; rd_col < N; rd_col = rd_col + 1)
+                b_rd_data[rd_col*DATA_W +: DATA_W] <=
+                    b_mem[rd_col][b_rd_addr[rd_col*K_ADDR_W +: K_ADDR_W]];
         end
     end
 endmodule
