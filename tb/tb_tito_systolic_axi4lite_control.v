@@ -1,5 +1,5 @@
-\`timescale 1ns/1ps
-\`default_nettype none
+`timescale 1ns/1ps
+`default_nettype none
 module tb_tito_systolic_axi4lite_control;
     reg clk, resetb;
     reg [31:0] awaddr, wdata, araddr;
@@ -178,4 +178,4 @@ module tb_tito_systolic_axi4lite_control;
         $fatal(1);
     end
 endmodule
-\`default_nettype wire
+`default_nettype wire
