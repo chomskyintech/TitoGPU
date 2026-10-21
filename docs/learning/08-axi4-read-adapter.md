@@ -17,12 +17,18 @@ The adapter allows only one burst at a time. ARVALID and its payload stay stable
 
 A response with RRESP other than OKAY or an RID other than zero is reported as an error instead of being forwarded as valid operand data.
 
+## Related design documents
+
+- **[AXI4 read adapter design contract](../13_axi4_read_adapter.md)** — address units, burst fields, handshake contract, error handling, and explicit scope limits.
+- [External-memory read frontend](../11_external_memory_read_frontend.md) — the generic interface that the adapter translates.
+- [Double-buffered tile-loading design](../12_double_buffered_tile_loading.md) — how the frontend is used by the tiled accelerator.
+
 ## Code tour
 
-- RTL: `rtl/tito_systolic_axi4_read_adapter.v`
-- Testbench: `tb/tb_tito_systolic_axi4_read_adapter.v`
-- Regression wiring: `Makefile`, target `sim` and `synth-axi`
-- Related generic interface: `rtl/tito_systolic_dma_reader.v`
+- RTL: [`rtl/tito_systolic_axi4_read_adapter.v`](../../rtl/tito_systolic_axi4_read_adapter.v)
+- Testbench: [`tb/tb_tito_systolic_axi4_read_adapter.v`](../../tb/tb_tito_systolic_axi4_read_adapter.v)
+- Generic frontend: [`rtl/tito_systolic_dma_reader.v`](../../rtl/tito_systolic_dma_reader.v)
+- Regression wiring: [`Makefile`](../../Makefile), targets `sim` and `synth-axi`
 
 Read the assignments for `m_axi_araddr`, `m_axi_arlen`, `m_axi_arsize`, `m_axi_arvalid`, `rd_req_ready`, and `m_axi_rready`. Then read the `read_active` sequential block. The state bit is the adapter's one-outstanding transaction tracker.
 
@@ -33,7 +39,7 @@ make sim
 make synth-axi
 ```
 
-The dedicated test should report that address backpressure, byte-address conversion, burst fields, R backpressure, RLAST completion, SLVERR handling, and unexpected RID rejection pass. Check the latest CI run before treating that output as verified.
+The dedicated test checks address backpressure, byte-address conversion, burst fields, R backpressure, RLAST completion, SLVERR handling, and unexpected RID rejection.
 
 ## Trace it before running
 
@@ -51,4 +57,6 @@ Attempt the exercises before opening the answers. Record your predictions and te
 
 ## Evidence and limitations
 
-This lesson documents the standalone adapter and its protocol-focused test. It does not imply full AXI4 compliance or top-level accelerator integration. Verified test/Makefile commit: [\`1946de2\`](https://github.com/chomskyintech/TitoGPU/commit/1946de28bee3ebe5c1cae71848b066abf18a0d02). [CI run #173](https://github.com/chomskyintech/TitoGPU/actions/runs/39539898394) passed the full simulation and generic synthesis. Limitations remain: this is a restricted read-channel subset, not full AXI4 compliance or top-level integration.
+- Standalone adapter verification: [CI run #173](https://github.com/chomskyintech/TitoGPU/actions/runs/39539898394), full simulation and generic synthesis passed for test/Makefile commit [`1946de2`](https://github.com/chomskyintech/TitoGPU/commit/1946de28bee3ebe5c1cae71848b066abf18a0d02).
+- This proves the documented unit-test scenarios, not full AXI4 compliance or top-level integration.
+- Limits: fixed ID zero, one outstanding read, no writes, timeout, retries, burst splitting, or abort/flush.
