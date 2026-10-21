@@ -21,6 +21,7 @@ module tito_systolic_command_accelerator #(
     input  wire [MEM_ADDR_W-1:0]        mem_wr_addr,
     input  wire [DATA_W-1:0]            mem_wr_data,
     input  wire                         cmd_start,
+    input  wire                         cmd_accumulate, // 0 = replace outputs; 1 = add this K tile to prior results
     output wire                         busy,
     output reg                          done,
     input  wire                         result_rd_en,
@@ -35,6 +36,7 @@ module tito_systolic_command_accelerator #(
     reg [1:0] state;
     reg core_start;
     reg [RESULT_ADDR_W-1:0] writeback_idx;
+    reg accumulate_q;
     reg [ACC_W-1:0] result_mem [0:N*N-1];
     wire [N*N*ACC_W-1:0] accum_out;
     wire core_busy;
@@ -61,6 +63,7 @@ module tito_systolic_command_accelerator #(
             state <= ST_IDLE;
             core_start <= 1'b0;
             writeback_idx <= {RESULT_ADDR_W{1'b0}};
+            accumulate_q <= 1'b0;
             done <= 1'b0;
             result_rd_data <= {ACC_W{1'b0}};
             result_rd_valid <= 1'b0;
@@ -86,6 +89,7 @@ module tito_systolic_command_accelerator #(
                 ST_IDLE: begin
                     if (cmd_start) begin
                         core_start <= 1'b1;
+                        accumulate_q <= cmd_accumulate;
                         state <= ST_COMPUTE;
                     end
                 end
@@ -96,8 +100,12 @@ module tito_systolic_command_accelerator #(
                     end
                 end
                 ST_WRITEBACK: begin
-                    result_mem[writeback_idx] <=
-                        accum_out[writeback_idx*ACC_W +: ACC_W];
+                    if (accumulate_q)
+                        result_mem[writeback_idx] <= result_mem[writeback_idx] +
+                            accum_out[writeback_idx*ACC_W +: ACC_W];
+                    else
+                        result_mem[writeback_idx] <=
+                            accum_out[writeback_idx*ACC_W +: ACC_W];
                     if (writeback_idx == N*N-1) begin
                         state <= ST_IDLE;
                         done <= 1'b1;
