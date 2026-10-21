@@ -166,6 +166,8 @@ module tb_tito_systolic_axi4_write_adapter;
                 bresp=2'b00; bvalid=1;
                 tick();
                 @(negedge clk); bvalid=0;
+                if (i==255 && (!done || error || busy))
+                    $fatal(1,"FAIL: final split transaction did not complete");
                 if (i==63) begin
                     if (!awvalid || awaddr!==16'h1000 || awlen!==8'd191)
                         $fatal(1,"FAIL: second split burst address/length");
@@ -174,7 +176,6 @@ module tb_tito_systolic_axi4_write_adapter;
             end
             @(negedge clk);
         end
-        if (!done || error || busy) $fatal(1,"FAIL: split transaction did not complete");
         $display("PASS: 256-beat stream splits at 4 KiB boundary (64 + 192 beats)");
         $display("PASS: AXI write-adapter unit regression");
         $finish;
