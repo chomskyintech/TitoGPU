@@ -15,3 +15,11 @@ csrc/
 *.wdb
 *.cache/
 .DS_Store
+
+# Local CGRA simulation/synthesis outputs
+build_cgra
+*.vcd
+*.log
+*.json
+*.dot
+*.svg
