@@ -1,7 +1,7 @@
 `default_nettype none
 
 // End-to-end wrapper for a double-buffered tiled accelerator with 32-bit AXI
-// reads and an optional single-burst result writeback path.
+// reads, multi-burst result writeback, and explicit writeback status reporting.
 module tito_systolic_axi4_double_buffered_accelerator #(
     parameter integer N = 4,
     parameter integer K = 4,
