@@ -28,7 +28,7 @@ The final W handshake completes data transfer, but the write response still has 
 
 ### 3. AXI burst fields
 
-For a 32-bit bus, each beat is four bytes:
+The current controller fixes AWID to zero; the write address ID is exposed explicitly. For a 32-bit bus, each beat is four bytes:
 - `AWSIZE=2` because (2^2=4) bytes per beat.
 - `AWLEN=beats-1`, so three beats means `AWLEN=2`.
 - `AWBURST=INCR` for sequential addresses.
@@ -76,4 +76,4 @@ The CI run for the controller milestone passed both the full `make sim` suite an
 
 You can trace the AW/W/B lifecycle, explain all backpressure guarantees, calculate burst fields, and distinguish protocol completion from data-channel completion. The module is a restricted single-burst prototype—not a complete AXI4 master. It has no retries, timeouts, abort protocol, partial final beats, burst splitting, multiple outstanding IDs, cache coherence, or end-to-end accelerator writeback. Generic synthesis is not physical timing, area, power, or performance-per-watt evidence.
 
-**Next milestone:** design a result-stream adapter for the synchronous result memory, then integrate it with the write controller and verify the external memory contents against the independent matrix reference.
+**Next milestone:** [Lesson 12 — synchronous result streaming into AXI writeback](12-result-stream-writeback.md) covers the standalone bridge between the synchronous result-memory port and the write controller. Top-level integration with the actual accelerator and arbitration against host result reads is still pending.
