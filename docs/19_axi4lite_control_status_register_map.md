@@ -2,7 +2,7 @@
 
 ## Status
 
-The standalone control/status register bank is implemented in `rtl/tito_systolic_axi4lite_control.v`. It has an independent AW/W capture path, one outstanding B response, one outstanding R response, byte-strobe support for writable fields, and a dedicated regression. It is not yet integrated as the bus-facing top-level wrapper around the AXI4 master accelerator.
+The control/status register bank is implemented in `rtl/tito_systolic_axi4lite_control.v` and is now connected to the AXI4 master accelerator by `rtl/tito_systolic_axi4lite_system.v`. The bank has an independent AW/W capture path, one outstanding B response, one outstanding R response, byte-strobe support for writable fields, and both standalone and end-to-end regressions.
 
 ## Register map
 
@@ -43,6 +43,6 @@ The full `make sim` regression and generic synthesis targets `make synth-axi`, `
 
 ## Limitations and integration boundary
 
-This is a standalone register bank. It does not yet instantiate or wrap `tito_systolic_axi4_double_buffered_accelerator`; the surrounding system must connect its command outputs and status inputs to the accelerator. The first version does not include interrupts, privilege protection, an interconnect, clock-domain crossing, or a DMA/IOMMU. The accelerator's result writeback is still limited to aligned 32-bit words and at most 256 result beats per command.
+The integrated software-facing top-level is `rtl/tito_systolic_axi4lite_system.v`; see [contract 20](20_axi4lite_system_integration.md) and [Lesson 18](learning/18-software-controlled-system.md) for the software sequence and end-to-end test. The first version does not include interrupts, privilege protection, an interconnect, clock-domain crossing, or a DMA/IOMMU. The accelerator's result writeback is still limited to aligned 32-bit words and at most 256 result beats per command.
 
 See [Lesson 17 — AXI-Lite control/status registers](learning/17-axi4lite-control-status.md) and [the register-bank testbench](../tb/tb_tito_systolic_axi4lite_control.v).
