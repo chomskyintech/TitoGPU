@@ -38,12 +38,13 @@ module tito_systolic_axi4_result_writeback #(
     output wire m_axi_bready
 );
     localparam integer LEN_W=9;
+    localparam integer COUNT_W=(RESULT_BEATS>1 ? $clog2(RESULT_BEATS+1) : 1);
     localparam [3:0] ERR_NONE=4'd0, ERR_UNALIGNED=4'd2,
                      ERR_TOO_LONG=4'd3, ERR_4K_CROSS=4'd4;
 
     reg active, local_error;
     reg [3:0] local_error_code;
-    reg [RESULT_ADDR_W-1:0] read_index;
+    reg [COUNT_W-1:0] read_index;
     reg read_pending, pending_last;
     reg stream_buf_valid, stream_buf_last;
     reg [DATA_W-1:0] stream_buf_data;
@@ -72,7 +73,7 @@ module tito_systolic_axi4_result_writeback #(
 
     always @* begin
         result_rd_en=result_request;
-        result_rd_addr=read_index;
+        result_rd_addr=read_index[RESULT_ADDR_W-1:0];
     end
 
     tito_systolic_axi4_write_adapter #(
