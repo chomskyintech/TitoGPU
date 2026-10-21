@@ -22,3 +22,5 @@ jobs:
         run: make synth-axi
       - name: Synthesize AXI write adapter
         run: make synth-writeback
+      - name: Synthesize AXI-Lite control/status register bank
+        run: make synth-control
