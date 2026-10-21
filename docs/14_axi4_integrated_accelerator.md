@@ -34,9 +34,9 @@ make synth-axi
 
 The [RTL regression workflow](https://github.com/chomskyintech/TitoGPU/actions/workflows/rtl-regression.yml) runs both commands. Check its result against the exact branch-head commit before describing a later change as verified.
 
-## Next milestone
+## Writeback integration status
 
-The standalone [AXI write controller](../rtl/tito_systolic_axi4_write_adapter.v) and [synchronous result-stream adapter](../rtl/tito_systolic_axi4_result_writeback.v) now have unit regressions and generic synthesis coverage. They are not yet connected to this top-level wrapper. The next step is to add explicit arbitration between host result reads and writeback reads, expose the AW/W/B ports and writeback command/status, and verify that actual computed results reach external memory. Follow the [AXI writeback contract](15_axi4_writeback_design_contract.md) and [result-stream adapter design](17_axi4_result_stream_adapter.md).
+The wrapper now includes the [AXI write controller](../rtl/tito_systolic_axi4_write_adapter.v) and [synchronous result-stream adapter](../rtl/tito_systolic_axi4_result_writeback.v), with explicit arbitration between host result reads and writeback reads. The integrated regression checks that all 16 results from a two-tile matrix operation are written to external memory and match the independent reference. See the [AXI writeback contract](15_axi4_writeback_design_contract.md), [result-stream adapter design](17_axi4_result_stream_adapter.md), and [Lesson 13](learning/13-integrated-axi-writeback.md) for implementation details and limits.
 
 ## Limitations
 
