@@ -141,12 +141,12 @@ module tb_tito_systolic_axi4_result_writeback;
         $display("PASS: AXI result writeback waits for successful B handshake");
 
         reset_dut();
-        @(negedge clk); result_base_addr=16'h0FFC; start_valid=1;
+        @(negedge clk); result_base_addr=16'h0FFD; start_valid=1;
         tick();
         @(negedge clk); start_valid=0;
-        if (!error || error_code!==4'd4 || awvalid)
-            $fatal(1,"FAIL: 4-KiB-crossing result writeback command not rejected");
-        $display("PASS: result writeback rejects 4-KiB-crossing output range");
+        if (!error || error_code!==4'd2 || awvalid)
+            $fatal(1,"FAIL: unaligned result writeback command not rejected");
+        $display("PASS: result writeback rejects unaligned output address");
         $display("PASS: result writeback adapter regression");
         $finish;
     end
