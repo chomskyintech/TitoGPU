@@ -60,10 +60,11 @@ module tb_tito_systolic_axi4lite_system;
     wr_base<=awaddr_m; wr_len<=awlen; wr_index<=0; wr_addr_seen<=1;
    end
    if(wvalid_m && wready_m) begin
-    if(!wr_addr_seen) $fatal(1,"W beat accepted before AW in this simple memory model");
-    for(integer lane=0;lane<4;lane=lane+1) if(wstrb_m[lane]) mem[wr_base+wr_index*4+lane]<=wdata_m[lane*8 +: 8];
+    if(!(wr_addr_seen || (awvalid_m && awready_m))) $fatal(1,"W beat accepted before AW in this simple memory model");
+    for(integer lane=0;lane<4;lane=lane+1) if(wstrb_m[lane])
+     mem[(awvalid_m && awready_m ? awaddr_m : wr_base)+(awvalid_m && awready_m ? 0 : wr_index)*4+lane]<=wdata_m[lane*8 +: 8];
     if(wlast) begin wr_addr_seen<=0; wr_resp_pending<=1; end
-    else wr_index<=wr_index+1'b1;
+    else wr_index<= (awvalid_m && awready_m) ? 1 : wr_index+1'b1;
    end
    if(wr_resp_pending && !bvalid_m_q) begin bvalid_m_q<=1; bresp_m_q<=0; wr_resp_pending<=0; end
    if(bvalid_m_q && bready_m) bvalid_m_q<=0;
