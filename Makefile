@@ -28,7 +28,9 @@ sim:
 	iverilog -g2012 -Wall -o build_tito_tiled rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v rtl/tito_systolic_burst_command_accelerator.v rtl/tito_systolic_tiled_burst_accelerator.v tb/tb_tito_systolic_tiled_burst_accelerator.v
 	vvp build_tito_tiled
 	iverilog -g2012 -Wall -o build_tito_dma rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v rtl/tito_systolic_burst_command_accelerator.v rtl/tito_systolic_tiled_burst_accelerator.v rtl/tito_systolic_dma_reader.v tb/tb_tito_systolic_dma_reader.v
-	vvp build_tito_dma
+	vvp build_tito_dma +MEM_GAP=0
+	vvp build_tito_dma +MEM_GAP=2
+	vvp build_tito_dma +MEM_GAP=5
 	iverilog -g2012 -Wall -o build_tito_dbuf rtl/tito_systolic_mac.v rtl/tito_systolic_double_buffered_banked_scratchpad.v rtl/tito_systolic_double_buffered_stream_accelerator.v rtl/tito_systolic_double_buffered_command_accelerator.v rtl/tito_systolic_double_buffered_burst_command_accelerator.v rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v rtl/tito_systolic_double_buffered_dma_reader.v tb/tb_tito_systolic_double_buffered_dma_reader.v
 	vvp build_tito_dbuf +MEM_GAP=0
 	vvp build_tito_dbuf +MEM_GAP=2
