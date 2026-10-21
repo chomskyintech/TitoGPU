@@ -136,11 +136,24 @@ module tb_tito_systolic_axi4lite_control;
         axi_write(32'h00,32'h2,4'h1,1,2'b00);
         repeat(2) @(negedge clk);
         if (wb_start_count!=1) $fatal(1,"FAIL: writeback start pulse count %0d",wb_start_count);
+        axi_write(32'h00,32'h3,4'h1,0,2'b00);
+        repeat(2) @(negedge clk);
+        if (op_start_count!=1 || wb_start_count!=1)
+            $fatal(1,"FAIL: combined start bits should reject both commands");
+        axi_read(32'h04,2'b00,read_value);
+        if (!read_value[31]) $fatal(1,"FAIL: combined start rejection not recorded");
+        axi_write(32'h04,32'h80000000,4'h1,0,2'b00);
+        axi_read(32'h04,2'b00,read_value);
+        if (!read_value[31]) $fatal(1,"FAIL: WSTRB lane 0 incorrectly cleared STATUS bit 31");
+        axi_write(32'h04,32'h80000000,4'h8,1,2'b00);
+        axi_read(32'h04,2'b00,read_value);
+        if (read_value[31]) $fatal(1,"FAIL: byte lane 3 did not clear command_rejected");
+
         op_busy=1;
         axi_write(32'h00,32'h1,4'h1,0,2'b00);
         op_busy=0;
         axi_read(32'h04,2'b00,read_value);
-        if (!read_value[31]) $fatal(1,"FAIL: rejected command not recorded in STATUS");
+        if (!read_value[31]) $fatal(1,"FAIL: busy command rejection not recorded");
         axi_write(32'h04,32'h80000000,4'hF,0,2'b00);
         axi_read(32'h04,2'b00,read_value);
         if (read_value[31]) $fatal(1,"FAIL: W1C did not clear command_rejected");
