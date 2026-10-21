@@ -22,7 +22,7 @@ module tb_tito_systolic_tiled_burst_accelerator;
     integer a_ref [0:N-1][0:K-1];
     integer b_ref [0:K-1][0:N-1];
     integer expected [0:N-1][0:N-1];
-    integer i,j,k,t,checks,cycles;
+    integer i,j,k,t,checks,cycles,beats_sent;
 
     tito_systolic_tiled_burst_accelerator #(
         .N(N), .K(K), .DATA_W(DATA_W), .ACC_W(ACC_W),
@@ -65,6 +65,8 @@ module tb_tito_systolic_tiled_burst_accelerator;
             while (!data_ready) @(negedge clk);
             @(negedge clk);
             data_valid=0;
+            beats_sent=beats_sent+1;
+            if ((beats_sent % 4)==0) $display("INFO: accepted producer beat %0d at %0t",beats_sent,$time);
         end
     endtask
 
@@ -91,7 +93,7 @@ module tb_tito_systolic_tiled_burst_accelerator;
         op_start=0; op_tile_count=0;
         burst_start_valid=0; burst_bank=0; burst_base_addr=0; burst_len=0;
         data_valid=0; data=0; result_rd_en=0; result_rd_addr=0;
-        checks=0; cycles=0;
+        checks=0; cycles=0; beats_sent=0;
 
         repeat(3) @(negedge clk);
         resetb=1;
