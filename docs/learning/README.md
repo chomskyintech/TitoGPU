@@ -64,3 +64,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 02 — K-Dimension Tiling and Partial-Sum Accumulation
 
 [Open the lesson](02-k-dimension-tiling.md). Learn how a fixed K=4 tile handles larger matrix reductions, how replace/accumulate modes combine partial sums, and how to test the result against an independent reference model.
+
+
+## Lesson 03 — Ready/Valid Handshakes
+
+[Open the lesson](03-ready-valid-handshake.md). Learn when a transfer is accepted, how backpressure works, and why a ready/valid port is not yet a DMA engine.
