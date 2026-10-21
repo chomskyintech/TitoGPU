@@ -96,6 +96,7 @@ module tb_tito_systolic_axi4_read_adapter;
                     $fatal(1);
                 end
             end
+            if (resp_value == 2'b00 && id_value == 0) tick();
             @(negedge clk); m_axi_rvalid=0; m_axi_rlast=0;
         end
     endtask
