@@ -9,7 +9,7 @@ module tb_tito_systolic_command_accelerator;
     localparam integer MEM_ADDR_W = 4;
     localparam integer RESULT_ADDR_W = 4;
 
-    reg clk, resetb, mem_wr_en, mem_wr_bank, cmd_start, result_rd_en;
+    reg clk, resetb, mem_wr_en, mem_wr_bank, cmd_start, cmd_accumulate, result_rd_en;
     reg [MEM_ADDR_W-1:0] mem_wr_addr;
     reg [DATA_W-1:0] mem_wr_data;
     reg [RESULT_ADDR_W-1:0] result_rd_addr;
@@ -28,7 +28,7 @@ module tb_tito_systolic_command_accelerator;
         .clk(clk), .resetb(resetb),
         .mem_wr_en(mem_wr_en), .mem_wr_bank(mem_wr_bank),
         .mem_wr_addr(mem_wr_addr), .mem_wr_data(mem_wr_data),
-        .cmd_start(cmd_start), .busy(busy), .done(done),
+        .cmd_start(cmd_start), .cmd_accumulate(cmd_accumulate), .busy(busy), .done(done),
         .result_rd_en(result_rd_en), .result_rd_addr(result_rd_addr),
         .result_rd_data(result_rd_data), .result_rd_valid(result_rd_valid)
     );
@@ -37,7 +37,7 @@ module tb_tito_systolic_command_accelerator;
 
     initial begin
         clk=0; resetb=0; mem_wr_en=0; mem_wr_bank=0; mem_wr_addr=0;
-        mem_wr_data=0; cmd_start=0; result_rd_en=0; result_rd_addr=0;
+        mem_wr_data=0; cmd_start=0; cmd_accumulate=0; result_rd_en=0; result_rd_addr=0;
         checks=0; cycles=0;
         repeat (3) @(negedge clk);
         resetb=1;
