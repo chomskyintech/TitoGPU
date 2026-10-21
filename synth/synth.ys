@@ -1,0 +1,10 @@
+read_verilog rtl/cgra_pe.v rtl/cgra_array.v rtl/cgra_top.v
+hierarchy -check -top cgra_top
+proc
+opt
+memory
+opt
+techmap
+opt
+check
+stat
