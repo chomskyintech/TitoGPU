@@ -34,6 +34,7 @@ module tb_tito_systolic_double_buffered_dma_reader;
     integer i,j,k,t,checks,cycles,request_count,overlap_seen;
     integer response_beats, request_backpressure_cycles;
     integer compute_busy_cycles, compute_idle_cycles, memory_active_cycles;
+    integer mem_gap_cfg, mem_gap_countdown;
     integer signed mem_value;
 
     tito_systolic_double_buffered_dma_reader #(
@@ -78,6 +79,7 @@ module tb_tito_systolic_double_buffered_dma_reader;
             mem_addr_q <= 0;
             mem_len_q <= 0;
             mem_index <= 0;
+            mem_gap_countdown <= 0;
             rd_data_valid <= 1'b0;
             rd_data <= 0;
             rd_data_last <= 1'b0;
@@ -97,6 +99,7 @@ module tb_tito_systolic_double_buffered_dma_reader;
                 mem_addr_q <= rd_req_addr;
                 mem_len_q <= rd_req_len;
                 mem_index <= 0;
+                mem_gap_countdown <= mem_gap_cfg;
                 rd_data_valid <= 1'b0;
                 request_count <= request_count + 1;
             end
@@ -110,16 +113,25 @@ module tb_tito_systolic_double_buffered_dma_reader;
                     rd_data_valid <= 1'b0;
                 end else begin
                     mem_index <= mem_index + 1'b1;
-                    mem_value = operand_value(mem_addr_q,mem_index+1'b1);
-                    rd_data <= mem_value[DATA_W-1:0];
-                    rd_data_last <= bad_last_mode ? (mem_index+1'b1 == 2) : (mem_index+1'b1 == mem_len_q-1);
-                    rd_data_valid <= 1'b1;
+                    if (mem_gap_cfg == 0) begin
+                        mem_value = operand_value(mem_addr_q,mem_index+1'b1);
+                        rd_data <= mem_value[DATA_W-1:0];
+                        rd_data_last <= bad_last_mode ? (mem_index+1'b1 == 2) : (mem_index+1'b1 == mem_len_q-1);
+                        rd_data_valid <= 1'b1;
+                    end else begin
+                        rd_data_valid <= 1'b0;
+                        mem_gap_countdown <= mem_gap_cfg;
+                    end
                 end
             end else if (mem_active && !rd_data_valid) begin
-                mem_value = operand_value(mem_addr_q,mem_index);
-                rd_data <= mem_value[DATA_W-1:0];
-                rd_data_last <= bad_last_mode ? (mem_index == 2) : (mem_index == mem_len_q-1);
-                rd_data_valid <= 1'b1;
+                if (mem_gap_countdown > 0) begin
+                    mem_gap_countdown <= mem_gap_countdown - 1;
+                end else begin
+                    mem_value = operand_value(mem_addr_q,mem_index);
+                    rd_data <= mem_value[DATA_W-1:0];
+                    rd_data_last <= bad_last_mode ? (mem_index == 2) : (mem_index == mem_len_q-1);
+                    rd_data_valid <= 1'b1;
+                end
             end
         end
     end
@@ -129,6 +141,10 @@ module tb_tito_systolic_double_buffered_dma_reader;
         op_start=0; a_base_addr=100; b_base_addr=200; op_tile_count=2;
         rd_req_ready=0; rd_data_valid=0; rd_data=0; rd_data_last=0; rd_error=0;
         result_rd_en=0; result_rd_addr=0; cycles=0; checks=0; request_count=0; overlap_seen=0; bad_last_mode=0;
+        mem_gap_cfg=0; mem_gap_countdown=0;
+        if (!$value$plusargs("MEM_GAP=%d",mem_gap_cfg)) mem_gap_cfg=0;
+        if (mem_gap_cfg < 0) mem_gap_cfg=0;
+        $display("CONFIG: memory response gap=%0d cycles between accepted beats",mem_gap_cfg);
         repeat(3) @(negedge clk);
         resetb=1;
 
@@ -169,8 +185,8 @@ module tb_tito_systolic_double_buffered_dma_reader;
                 op_done,op_error,op_busy,dut.state);
             $fatal(1);
         end
-        if (!overlap_seen) begin
-            $display("FAIL: next-tile memory read did not overlap current compute");
+        if (mem_gap_cfg == 0 && !overlap_seen) begin
+            $display("FAIL: zero-gap memory model did not overlap next-tile read with compute");
             $fatal(1);
         end
         if (request_count != 4) begin
