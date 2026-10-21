@@ -37,6 +37,7 @@ module tito_systolic_axi4_double_buffered_accelerator #(
     output wire                         writeback_busy,
     output wire                         writeback_done,
     output wire                         writeback_error,
+    output wire [3:0]                   writeback_error_code,
 
     output wire [ID_W-1:0]              m_axi_awid,
     output wire [ADDR_W-1:0]            m_axi_awaddr,
@@ -138,7 +139,7 @@ module tito_systolic_axi4_double_buffered_accelerator #(
         .start_valid(wb_start_valid), .start_ready(wb_internal_start_ready),
         .result_base_addr(writeback_base_addr),
         .busy(writeback_busy), .done(writeback_done), .error(writeback_error),
-        .error_code(),
+        .error_code(writeback_error_code),
         .result_rd_en(wb_result_rd_en), .result_rd_addr(wb_result_rd_addr),
         .result_rd_data(core_result_rd_data), .result_rd_valid(core_result_rd_valid),
         .m_axi_awid(m_axi_awid), .m_axi_awaddr(m_axi_awaddr),
