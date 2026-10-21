@@ -132,8 +132,10 @@ module tb_tito_systolic_axi4_result_writeback;
         tick();
         @(negedge clk); bvalid=0;
         repeat(2) tick();
-        if (!done || error || busy || !b_handshake_seen)
+        if (!done || error || busy || !b_handshake_seen) begin
+            $display("DEBUG: done=%b error=%b busy=%b b_handshake_seen=%b writer_done=%b writer_error=%b",done,error,busy,b_handshake_seen,dut.writer_done,dut.writer_error);
             $fatal(1,"FAIL: writeback completion status incorrect");
+        end
         $display("PASS: synchronous result reads written byte-for-byte through AXI W channel");
         $display("PASS: AXI result writeback waits for successful B handshake");
 
