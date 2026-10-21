@@ -134,7 +134,8 @@ module tb_cgra_controller;
             $fatal(1);
         end
 
-        @(negedge clk);
+        @(posedge clk);
+        #1;
         checks=checks+1;
         if (done_count !== 3) begin
             $display("FAIL expected 3 completion pulses, got %0d", done_count);
