@@ -39,7 +39,7 @@ The test should print `PASS: AXI-Lite configured compute and writeback; 16 exter
 ## Exercises
 
 1. Change B's contents and independently update the expected result check.
-2. Add a test that deliberately starts writeback while the compute engine is busy; confirm STATUS bit 31 reports command rejection.
+2. Extend the busy-command test to cover a rejected writeback command while compute is active and a CONTROL write with both start bits set.
 3. Stretch goal: extend the memory model to insert variable R-channel gaps and run a multi-tile test from the software-visible interface.
 4. Extend fault injection to AXI RRESP errors and define how read errors should be surfaced through the software-visible STATUS/ERROR_CODE contract.
 
@@ -47,5 +47,6 @@ The test should print `PASS: AXI-Lite configured compute and writeback; 16 exter
 
 - A CONTROL write response acknowledges a register write; STATUS communicates operation completion.
 - The completion bits are latched because the underlying hardware done signal is only a pulse.
+- The system regression now also issues a second compute-start command while the first operation is active, checks STATUS bit 31, and clears the rejection latch with W1C.
 - The end-to-end test uses the real memory transaction interfaces but currently covers one tile. Multi-tile and gap coverage remains in the lower-level regression.
 - Yosys generic synthesis is not a physical PPA report.
