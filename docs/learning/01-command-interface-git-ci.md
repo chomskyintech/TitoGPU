@@ -89,6 +89,17 @@ git status --short --branch
 
 Then open the linked GitHub Actions run and verify the final conclusion, not just whether the job started. A CI run is only a pass when its conclusion is `success`; `queued` or `in_progress` is not a pass.
 
+## New regression: start during writeback
+
+The command wrapper must ignore `cmd_start` while its FSM is in `ST_WRITEBACK`.
+The test waits until writeback begins, sends a one-cycle start pulse, and checks:
+
+- the current command remains busy until its result writeback completes;
+- `done` is asserted for the current command;
+- no second command starts in the following idle cycles.
+
+Why this matters: ignoring starts only during computation is not enough. The whole command lifecycle—from acceptance through result writeback—must have a defined busy contract.
+
 ## Exercises
 
 ### Exercise A — Read the state machine
