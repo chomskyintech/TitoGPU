@@ -277,3 +277,13 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Documentation: `docs/13_axi4_read_adapter.md` and [Lesson 08](learning/08-axi4-read-adapter.md).
 - Verified test/Makefile commit: [\`1946de2\`](https://github.com/chomskyintech/TitoGPU/commit/1946de28bee3ebe5c1cae71848b066abf18a0d02). CI: [run #173](https://github.com/chomskyintech/TitoGPU/actions/runs/39539898394) — **PASS** for full simulation and generic synthesis.
 - Limits: read-channel subset only; fixed ID zero, one outstanding burst, no AXI writes, timeout, burst splitting, abort/flush, or top-level double-buffered integration. Generic synthesis is not physical PPA.
+
+
+## 2026-10-21 — AXI-connected double-buffered accelerator added; CI pending
+
+- Added `rtl/tito_systolic_axi4_double_buffered_accelerator.v` to connect the AXI read adapter to the double-buffered DMA frontend.
+- Added `tb/tb_tito_systolic_axi4_double_buffered_accelerator.v`: mock AXI memory, four A/B tile bursts, all 16 result checks against an independent reference, and early-RLAST fault injection.
+- Updated `make sim` and `make synth-axi` to include the integrated wrapper.
+- Documentation: `docs/14_axi4_integrated_accelerator.md` and [Lesson 09](learning/09-axi4-integration.md).
+- CI status: pending full simulation and generic synthesis for the integrated wrapper.
+- Limits: test uses DATA_W=8 and therefore a byte-wide AXI bus; no wide-bus byte-lane unpacker, writes, multiple outstanding reads, 4-KiB burst splitting, abort/flush, or physical PPA.
