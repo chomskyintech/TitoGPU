@@ -102,6 +102,8 @@ module tito_systolic_axi4_result_writeback #(
             read_index<=0; read_pending<=0; pending_last<=0;
             stream_buf_valid<=0; stream_buf_last<=0; stream_buf_data<=0;
         end else begin
+            // Completion is an event pulse; error remains sticky until a new start.
+            done<=0;
             if (start_valid && start_ready) begin
                 done<=0; local_error<=0; local_error_code<=ERR_NONE;
                 read_index<=0; read_pending<=0; pending_last<=0;
