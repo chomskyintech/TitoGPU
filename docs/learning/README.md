@@ -69,3 +69,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 03 — Ready/Valid Handshakes
 
 [Open the lesson](03-ready-valid-handshake.md). Learn when a transfer is accepted, how backpressure works, and why a ready/valid port is not yet a DMA engine.
+
+
+## Lesson 04 — Streaming Bursts and Backpressure
+
+[Open the lesson](04-streaming-bursts.md). Learn descriptor handshakes, automatic address increments, error handling, and the distinction between a streaming loader and a full DMA engine.
