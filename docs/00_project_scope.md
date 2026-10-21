@@ -4,61 +4,62 @@
 
 Develop a reproducible, verification-led hardware accelerator prototype for inference-oriented integer matrix operations, with a possible future integration path to TitoRV.
 
-This project begins as an educational/research prototype. It is not yet a production GPU, a complete neural-network processor, or evidence of competitive performance.
+This is an educational/research prototype, not yet a production GPU, a complete neural-network processor, or evidence of competitive performance.
 
-## Initial workload
+## Existing starting point
 
-The first datapath target is signed INT8 multiplication with a wider signed accumulator. The exact accumulator width, saturation/wrap behaviour, lane count, and tile interface must be frozen in the microarchitecture specification before RTL is written.
+The TitoRV `cgra-standalone` branch already contains a 2x2 coarse-grained reconfigurable array (four processing elements), signed INT8 multiply, 32-bit add/reduction, eight context slots per PE, and a directed four-element dot-product smoke test. See [the source audit](02_existing_cgra_audit.md).
 
-Initial work should use small deterministic vectors that are easy to check independently. Quantisation, activation functions, convolution scheduling, software drivers, and full model execution are later milestones.
+Therefore the first technical task is **validate and audit the existing CGRA**, not immediately write a duplicate MAC. The smoke test is present in source, but has not yet been independently run as part of this repository setup.
 
 ## Milestones
 
-### M0 — Repository and specification
+### M0 — Repository and source audit
 - Establish design scope, coding conventions, toolchain assumptions, and decision log.
-- Audit TitoRV's current interfaces and the `cgra-standalone` branch.
-- Write an interface contract and arithmetic reference model.
-- Exit: reviewed specification; unresolved questions are explicit.
+- Audit TitoRV's core and `cgra-standalone` RTL.
+- Verify source licence and choose a source-of-truth strategy.
+- Exit: known interfaces, test status, arithmetic semantics, and limitations are documented.
 
-### M1 — Arithmetic primitive
-- Implement a parameterised or explicitly sized signed INT8 MAC primitive.
-- Verify signed corner cases, zero, positive/negative operands, accumulator boundaries, and reset/control behaviour if present.
-- Exit: directed and randomized tests pass against an independent reference model.
+### M1 — Reproduce baseline
+- Run the existing CGRA directed simulation with Icarus Verilog.
+- Run its generic Yosys synthesis script and review warnings/reports.
+- Record commit SHA, tool versions, commands, logs, and actual outcomes.
+- Exit: baseline results are reproducible; failures are fixed or clearly tracked.
 
-### M2 — Compute tile
-- Define how operands enter, how results leave, and how valid/ready or request/response flow control works.
-- Add tile-level tests including stalls and backpressure.
-- Exit: no data loss, duplication, or reordering under tested stall patterns.
+### M2 — Strengthen functional verification
+- Add directed tests for signed INT8 boundaries, negative products, reduction overflow semantics, context selection, and each supported operation.
+- Test reset, repeated launches, start/config writes while busy, run-length limits, and result timing.
+- Compare against an independent software reference model.
+- Exit: specified behaviour is covered and regression passes.
 
-### M3 — Command and local storage
-- Add a minimal controller and local operand/accumulator storage only after tile behaviour is stable.
-- Define address map and error behaviour before implementing a register interface.
-- Exit: command sequences are reproducible and all state transitions have tests.
+### M3 — Freeze microarchitecture
+- Decide the supported workload, arithmetic contract, context encoding, run control, and error handling.
+- Decide whether to maintain the CGRA in TitoRV or move/pin it in TitoGPU; avoid untracked duplicate source.
+- Exit: reviewed microarchitecture and interface specification.
 
-### M4 — Regression and synthesis baseline
-- Add CI for lint and simulation using tools available in CI.
-- Record exact tool versions, commands, source revision, seed, pass/fail count, and logs.
-- Run synthesis only when a supported tool is available; do not label generic estimates as silicon results.
-- Exit: clean checkout can run the documented checks.
+### M4 — Improve control and memory interfaces
+- Implement a bus wrapper only after the register map and handshake contract are approved.
+- Verify the wrapper with a standalone bus-master testbench before connecting the CPU.
+- Do not assume CPU load/store transactions provide efficient bulk tensor movement.
+- Exit: control path and memory access are tested and documented.
 
-### M5 — TitoRV integration study
-- Inspect TitoRV top-level, instruction memory, data memory, and branch-specific CGRA work.
-- Choose memory access and control integration based on evidence, not assumption.
-- Keep CPU-side control and bulk data movement separate if needed.
-- Exit: written integration proposal and a system-level test plan before RTL integration.
+### M5 — TitoRV integration
+- Inspect TitoRV top-level, instruction/data memories, interconnect, and branch-specific work.
+- Add system tests that configure, launch, poll completion, and check result data.
+- Exit: reproducible end-to-end CPU-to-CGRA test.
 
 ### M6 — Workload evaluation
-- Add a small, specified inference-like workload and a trusted software reference.
-- Report operations, cycles, clock assumptions, latency/throughput, and resource estimates.
+- Add a small inference-like workload and trusted reference.
+- Report operation count, cycles, clock assumptions, latency/throughput, and synthesis resources.
 - Compare only equivalent precision, workload, batch size, and measurement conditions.
 
-## Non-goals for the first milestone
+## Non-goals for the initial milestones
 
 - Claiming parity with NVIDIA/AMD/Apple or other modern GPU products.
 - Assuming a foundry, process node, SRAM macro, clock frequency, or power number without evidence.
 - Calling a simulation pass a certification.
-- Adding an undocumented bus or speculative register map merely to make integration appear complete.
+- Treating a proposed register map as an implemented peripheral.
 
-## Definition of done for each milestone
+## Definition of done
 
-A milestone is complete only when its source, tests, exact run command, tool version, results, and known limitations are recorded. Failed runs must remain visible in the log until a corrected run demonstrates the fix.
+A milestone is complete only when source, tests, exact run command, tool version, results, and known limitations are recorded. Failed runs must remain visible until a corrected run demonstrates the fix.
