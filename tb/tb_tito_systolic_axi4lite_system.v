@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 module tb_tito_systolic_axi4lite_system;
- localparam ADDR_W=16, AXI_DATA_W=32, ID_W=2;
+ localparam ADDR_W=32, AXI_DATA_W=32, ID_W=2;
  reg clk=0, resetb=0;
  reg [ADDR_W-1:0] awaddr=0, araddr=0; reg awvalid=0,wvalid=0,bready=0,arvalid=0,rready=0;
  reg [31:0] wdata=0; reg [3:0] wstrb=0;
