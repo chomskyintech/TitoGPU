@@ -78,7 +78,7 @@ function [31:0] select_source;
     end
 endfunction
 
-wire [31:0] pe0_a = select_source(ctx0[7:4], ctx0[31:13] == 19'd0 ? ext0 : ext0,
+wire [31:0] pe0_a = select_source(ctx0[7:4], ext0,
     ext1, ext2, ext3, ext4, ext5, ext6, ext7,
     pe0_result, pe1_result, pe2_result, pe3_result);
 wire [31:0] pe0_b = select_source(ctx0[11:8], ext0, ext1, ext2, ext3, ext4, ext5, ext6, ext7,
