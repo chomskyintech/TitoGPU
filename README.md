@@ -29,11 +29,16 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 - [Command interface and result writeback](rtl/tito_systolic_command_accelerator.v)
 - [Streaming burst command wrapper](rtl/tito_systolic_burst_command_accelerator.v)
 - [Autonomous K-tile burst sequencer](rtl/tito_systolic_tiled_burst_accelerator.v)
-- [External-memory read frontend](rtl/tito_systolic_dma_reader.v)\n- [Double-buffered scratchpad](rtl/tito_systolic_double_buffered_banked_scratchpad.v)\n- [Double-buffered compute path](rtl/tito_systolic_double_buffered_stream_accelerator.v)\n- [Double-buffered tiled controller](rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v)\n- [Double-buffered DMA frontend](rtl/tito_systolic_double_buffered_dma_reader.v)
+- [External-memory read frontend](rtl/tito_systolic_dma_reader.v)
+- [Double-buffered scratchpad](rtl/tito_systolic_double_buffered_banked_scratchpad.v)
+- [Double-buffered compute path](rtl/tito_systolic_double_buffered_stream_accelerator.v)
+- [Double-buffered tiled controller](rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v)
+- [Double-buffered DMA frontend](rtl/tito_systolic_double_buffered_dma_reader.v)
 - [K-dimension tiling test](tb/tb_tito_systolic_k_tiling.v)
 - [Burst loader end-to-end test](tb/tb_tito_systolic_burst_command_accelerator.v)
 - [Autonomous two-tile test](tb/tb_tito_systolic_tiled_burst_accelerator.v)
-- [DMA read frontend test](tb/tb_tito_systolic_dma_reader.v)\n- [Double-buffered overlap and fault test](tb/tb_tito_systolic_double_buffered_dma_reader.v)
+- [DMA read frontend test](tb/tb_tito_systolic_dma_reader.v)
+- [Double-buffered overlap and fault test](tb/tb_tito_systolic_double_buffered_dma_reader.v)
 - [Makefile regression and synthesis targets](Makefile)
 
 ## Documentation and learning path
@@ -46,7 +51,8 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 - [K-dimension tiling specification](docs/08_k_dimension_tiling.md)
 - [Streaming burst loader specification](docs/09_streaming_burst_loader.md)
 - [Autonomous K-tile sequencer specification](docs/10_autonomous_k_tile_burst_sequencer.md)
-- [External-memory read frontend specification](docs/11_external_memory_read_frontend.md)\n- [Double-buffered tile loading specification](docs/12_double_buffered_tile_loading.md)
+- [External-memory read frontend specification](docs/11_external_memory_read_frontend.md)
+- [Double-buffered tile loading specification](docs/12_double_buffered_tile_loading.md)
 - [Decision log](docs/10_decisions_and_tradeoffs.md)
 - [Bring-up and CI log](docs/bringup_log.md)
 - [Hands-on learning guide index](docs/learning/README.md)
@@ -55,7 +61,8 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 - [Lesson 03: Ready/valid handshakes](docs/learning/03-ready-valid-handshake.md)
 - [Lesson 04: Streaming bursts and backpressure](docs/learning/04-streaming-bursts.md)
 - [Lesson 05: Autonomous K-tile sequencing](docs/learning/05-autonomous-k-tile-sequencing.md)
-- [Lesson 06: External-memory read frontend](docs/learning/06-external-memory-read-frontend.md)\n- [Lesson 07: Double-buffered tile loading](docs/learning/07-double-buffered-tile-loading.md)
+- [Lesson 06: External-memory read frontend](docs/learning/06-external-memory-read-frontend.md)
+- [Lesson 07: Double-buffered tile loading](docs/learning/07-double-buffered-tile-loading.md)
 
 ## Run locally
 
