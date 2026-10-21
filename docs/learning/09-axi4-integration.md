@@ -6,26 +6,29 @@ Trace an operand tile from the accelerator's request scheduler, through AXI AR/R
 
 ## Concept
 
-The adapter from Lesson 08 translates protocol fields; the wrapper connects it to the actual accelerator frontend. That distinction matters: a unit test can prove address conversion and response handling, but only an integrated test can show that the correct bursts reach the correct operand banks and that the final computation remains correct.
+The adapter from Lesson 08 translates protocol fields; the wrapper connects it to the actual accelerator frontend. A unit test can prove address conversion and response handling, but only an integrated test can show that the correct bursts reach the correct operand banks and that the final computation remains correct.
 
-For a two-tile operation, the current frontend requests four bursts: A0, B0, A1, and B1. Each burst contains N×K operand beats. The ping-pong controller can load the next tile into the inactive buffer while the current tile computes. The end-to-end test checks the result matrix against an independent software-style reference calculation and injects an early RLAST fault.
+The integrated wrapper now keeps the frontend and compute datapath at 8-bit INT8 while using a 32-bit external AXI RDATA bus. Each AXI beat returns four operands, but the frontend still observes one logical operand per handshake. Lesson 10 focuses on how the adapter buffers a beat and selects each byte lane.
+
+For a two-tile operation, the frontend requests four bursts: A0, B0, A1, and B1. Each 16-operand tile is returned in four AXI beats. The end-to-end test checks the result matrix against an independent reference calculation and injects an early RLAST fault.
 
 ## Related design documents
 
-- **[AXI-connected double-buffered accelerator design](../14_axi4_integrated_accelerator.md)** — integrated datapath, verification plan, bus-width assumptions, and limitations.
-- [AXI4 read adapter design contract](../13_axi4_read_adapter.md) — protocol conversion and single-outstanding behavior.
+- **[AXI-connected double-buffered accelerator design](../14_axi4_integrated_accelerator.md)** — integrated datapath, bus widths, verification plan, and limitations.
+- [32-bit AXI read-width conversion contract](../16_axi4_32bit_read_width_contract.md) — lane order, byte addressing, burst lengths, handshake, and fault requirements.
+- [AXI4 read adapter contract](../13_axi4_read_adapter.md) — adapter interface and error handling.
 - [Double-buffered tile-loading design](../12_double_buffered_tile_loading.md) — buffer ownership and prefetch/compute overlap.
-- [External-memory read frontend](../11_external_memory_read_frontend.md) — generic read request/response contract.
+- [External-memory read frontend](../11_external_memory_read_frontend.md) — logical read request/response contract.
+- [Lesson 10 — AXI width conversion](10-axi-width-conversion.md) — guided study and exercises for the 32-to-8 conversion.
 
 ## Code tour
 
 - Wrapper: [`rtl/tito_systolic_axi4_double_buffered_accelerator.v`](../../rtl/tito_systolic_axi4_double_buffered_accelerator.v)
 - AXI adapter: [`rtl/tito_systolic_axi4_read_adapter.v`](../../rtl/tito_systolic_axi4_read_adapter.v)
 - Scheduler/frontend: [`rtl/tito_systolic_double_buffered_dma_reader.v`](../../rtl/tito_systolic_double_buffered_dma_reader.v)
-- Testbench and mock memory: [`tb/tb_tito_systolic_axi4_double_buffered_accelerator.v`](../../tb/tb_tito_systolic_axi4_double_buffered_accelerator.v)
-- Build wiring: [`Makefile`](../../Makefile)
-
-Follow the four address handshakes and note how ARREADY stalls are different from R-channel stalls. Then trace the final beat: RVALID and RREADY must both be high, RLAST must mark the last beat, and the frontend checks that the marker occurs at the expected count.
+- Integrated testbench: [`tb/tb_tito_systolic_axi4_double_buffered_accelerator.v`](../../tb/tb_tito_systolic_axi4_double_buffered_accelerator.v)
+- Width-converter testbench: [`tb/tb_tito_systolic_axi4_width_converter.v`](../../tb/tb_tito_systolic_axi4_width_converter.v)
+- Build and regression wiring: [`Makefile`](../../Makefile)
 
 ## Run it
 
@@ -34,21 +37,23 @@ make sim
 make synth-axi
 ```
 
-Look for the integrated two-tile matrix-multiply PASS line, all 16 result checks, and the early-RLAST rejection PASS line. Generic synthesis is not physical PPA.
+Look for the integrated two-tile matrix-multiply PASS line, all 16 result checks, the lane-conversion test PASS lines, and the early-RLAST rejection PASS line. Generic synthesis is not physical PPA.
 
 ## Exercises
 
 1. **Understanding:** Why is a separate wrapper useful instead of embedding AXI signal logic into the tile scheduler?
-2. **Debugging:** Change the mock memory to assert RLAST one beat early. Which module first detects the mismatch, and how does the error propagate?
-3. **Extension:** Add a test with two cycles of R-channel gap between accepted beats. Confirm that the final matrix is unchanged.
-4. **Architecture:** The integrated test uses an 8-bit AXI bus. Sketch how a 32-bit RDATA bus could return four INT8 operands per beat. What extra buffering and lane-selection state would be required?
+2. **Debugging:** Change the integrated mock memory to assert RLAST one AXI beat early. Which module detects the error first, and how does the error reach the frontend?
+3. **Extension:** Run with `MEM_GAP=5`. Explain why adding gaps changes latency but must not change the output matrix.
+4. **Architecture:** Compare the logical operand count with the AXI beat count. What state is needed to keep a 32-bit RDATA beat stable while the frontend accepts its four 8-bit lanes?
 
-## Answer and review
+## Learning cycle
 
-Attempt the exercises before checking the code. In particular, distinguish the adapter's responsibility (AXI handshake and response conversion) from the frontend's responsibility (expected burst length and tile ownership).
+- **Learn:** Read the linked contract and trace the code tour before editing.
+- **Predict:** For N=4, K=4 and INT8 operands, predict the AXI beat count and ARLEN for each tile.
+- **Run:** Execute the simulation regression and synthesis target.
+- **Explain:** Describe why AXI RLAST and the frontend's logical rd_data_last are not interchangeable.
+- **Modify:** Change one testbench stall interval or one packed operand value, then rerun the regression and explain the result.
 
 ## Evidence and limitations
 
-- Integrated wrapper and test were added on branch `feature/tito-systolic-mac`; check the [current CI run history](https://github.com/chomskyintech/TitoGPU/actions) for the latest run against the branch head.
-- The test checks four bursts, all 16 outputs against a reference, and early-RLAST fault handling.
-- Bus width in this test is DATA_W=8; there is no wide-bus lane unpacker. The path remains a restricted read-only AXI subset, not a production memory subsystem. Generic Yosys synthesis is not physical timing, area, power, or performance-per-watt evidence.
+The branch's RTL regression workflow runs `make sim` and `make synth-axi`. Use the latest completed run for the exact commit to confirm the result. The testbench is a functional mock, not a vendor AXI VIP test; generic synthesis is not physical timing, area, power, or performance-per-watt evidence.
