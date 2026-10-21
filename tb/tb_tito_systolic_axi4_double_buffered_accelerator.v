@@ -16,6 +16,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
     reg writeback_start;
     reg [ADDR_W-1:0] writeback_base_addr;
     wire writeback_start_ready, writeback_busy, writeback_done, writeback_error;
+    wire [3:0] writeback_error_code;
 
     wire [ID_W-1:0] m_axi_awid;
     wire [ADDR_W-1:0] m_axi_awaddr;
@@ -76,6 +77,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         .writeback_start(writeback_start), .writeback_base_addr(writeback_base_addr),
         .writeback_start_ready(writeback_start_ready), .writeback_busy(writeback_busy),
         .writeback_done(writeback_done), .writeback_error(writeback_error),
+        .writeback_error_code(writeback_error_code),
         .m_axi_awid(m_axi_awid), .m_axi_awaddr(m_axi_awaddr), .m_axi_awlen(m_axi_awlen),
         .m_axi_awsize(m_axi_awsize), .m_axi_awburst(m_axi_awburst),
         .m_axi_awvalid(m_axi_awvalid), .m_axi_awready(m_axi_awready),
@@ -341,7 +343,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
         while (!writeback_done && !writeback_error && cycles<1000) begin
             @(negedge clk); cycles=cycles+1;
         end
-        if (!writeback_done || writeback_error || writeback_busy ||
+        if (!writeback_done || writeback_error || writeback_error_code!=4'd0 || writeback_busy ||
             aw_write_count!=1 || w_write_count!=N*N) begin
             $display("FAIL: writeback status done=%b error=%b busy=%b AW=%0d W=%0d",
                 writeback_done,writeback_error,writeback_busy,aw_write_count,w_write_count);
@@ -370,7 +372,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
             @(negedge clk); cycles=cycles+1;
         end
         repeat(3) @(negedge clk);
-        if (!writeback_error || writeback_done || writeback_busy ||
+        if (!writeback_error || writeback_error_code!=4'd6 || writeback_done || writeback_busy ||
             aw_write_count!=1 || w_write_count!=1 || m_axi_awvalid)
             $fatal(1,"FAIL: first-burst SLVERR did not terminate writeback cleanly (err=%b done=%b busy=%b AW=%0d W=%0d)",
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
@@ -392,7 +394,7 @@ module tb_tito_systolic_axi4_double_buffered_accelerator;
             @(negedge clk); cycles=cycles+1;
         end
         repeat(3) @(negedge clk);
-        if (!writeback_error || writeback_done || writeback_busy ||
+        if (!writeback_error || writeback_error_code!=4'd6 || writeback_done || writeback_busy ||
             aw_write_count!=2 || w_write_count!=N*N || m_axi_awvalid)
             $fatal(1,"FAIL: second-burst SLVERR handling failed (err=%b done=%b busy=%b AW=%0d W=%0d)",
                 writeback_error,writeback_done,writeback_busy,aw_write_count,w_write_count);
