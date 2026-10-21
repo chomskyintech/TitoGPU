@@ -14,6 +14,7 @@ module tb_tito_systolic_axi4_write_adapter;
     reg stream_last;
     wire busy, done, error;
     wire [3:0] error_code;
+    wire [3:0] awid;
     wire [ADDR_W-1:0] awaddr;
     wire [7:0] awlen;
     wire [2:0] awsize;
@@ -35,7 +36,7 @@ module tb_tito_systolic_axi4_write_adapter;
         .stream_valid(stream_valid),.stream_ready(stream_ready),
         .stream_data(stream_data),.stream_last(stream_last),
         .busy(busy),.done(done),.error(error),.error_code(error_code),
-        .m_axi_awaddr(awaddr),.m_axi_awlen(awlen),.m_axi_awsize(awsize),
+        .m_axi_awid(awid),.m_axi_awaddr(awaddr),.m_axi_awlen(awlen),.m_axi_awsize(awsize),
         .m_axi_awburst(awburst),.m_axi_awvalid(awvalid),.m_axi_awready(awready),
         .m_axi_wdata(wdata),.m_axi_wstrb(wstrb),.m_axi_wlast(wlast),
         .m_axi_wvalid(wvalid),.m_axi_wready(wready),
@@ -95,7 +96,7 @@ module tb_tito_systolic_axi4_write_adapter;
         command(16'h0100,3);
         repeat(3) begin
             tick();
-            if (!awvalid || awaddr!==16'h0100 || awlen!==2 || awsize!==2 ||
+            if (!awvalid || awid!==0 || awaddr!==16'h0100 || awlen!==2 || awsize!==2 ||
                 awburst!==2'b01) $fatal(1,"FAIL: AW payload/valid not stable under stall");
         end
         awready=1; tick(); @(negedge clk); awready=0;
