@@ -46,6 +46,16 @@ cgra_top dut (
 
 always #5 clk = ~clk;
 
+// Temporary cycle trace to identify why the directed dot-product result is zero.
+always @(posedge clk) begin
+    if (resetb && (start || busy || done))
+        $display("TRACE t=%0t start=%b busy=%b done=%b idx=%0d ctx0=%h ctx1=%h ctx2=%h in0=%0d in1=%0d pe_a=%0d pe_b=%0d results={%0d,%0d,%0d,%0d}",
+            $time, start, busy, done, cycle_index,
+            dut.current_ctx0, dut.current_ctx1, dut.current_ctx2,
+            dut.in0, dut.in1, dut.array.pe0_a, dut.array.pe0_b,
+            $signed(result0), $signed(result1), $signed(result2), $signed(result3));
+end
+
 function [31:0] make_context;
     input enable;
     input [3:0] op;
