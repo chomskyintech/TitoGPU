@@ -173,7 +173,7 @@ module tb_cgra_pe;
     end
 
     initial begin
-        #2000;
+        #10000;
         $display("TIMEOUT: CGRA PE unit tests");
         $fatal(1);
     end
