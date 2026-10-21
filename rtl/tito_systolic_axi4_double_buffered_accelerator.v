@@ -1,12 +1,13 @@
 `default_nettype none
 
 // End-to-end wrapper connecting the double-buffered tiled accelerator to an
-// AXI4 read-channel subset. The AXI data width equals DATA_W; no width converter
-// is present. Generic frontend addresses are DATA_W-bit beat addresses.
+// AXI4 read-channel subset. The frontend/compute operand width is DATA_W;
+// AXI_DATA_W controls the external bus width and lane unpacking. Addresses are bytes.
 module tito_systolic_axi4_double_buffered_accelerator #(
     parameter integer N = 4,
     parameter integer K = 4,
     parameter integer DATA_W = 8,
+    parameter integer AXI_DATA_W = 32,
     parameter integer ACC_W = 32,
     parameter integer ADDR_W = 32,
     parameter integer MEM_ADDR_W = (N*K > 1 ? $clog2(N*K) : 1),
@@ -38,7 +39,7 @@ module tito_systolic_axi4_double_buffered_accelerator #(
     output wire                         m_axi_arvalid,
     input  wire                         m_axi_arready,
     input  wire [ID_W-1:0]              m_axi_rid,
-    input  wire [DATA_W-1:0]            m_axi_rdata,
+    input  wire [AXI_DATA_W-1:0]        m_axi_rdata,
     input  wire [1:0]                   m_axi_rresp,
     input  wire                         m_axi_rlast,
     input  wire                         m_axi_rvalid,
@@ -67,7 +68,7 @@ module tito_systolic_axi4_double_buffered_accelerator #(
     );
 
     tito_systolic_axi4_read_adapter #(
-        .ADDR_W(ADDR_W), .DATA_W(DATA_W), .LEN_W(BURST_LEN_W), .ID_W(ID_W)
+        .ADDR_W(ADDR_W), .DATA_W(DATA_W), .AXI_DATA_W(AXI_DATA_W), .LEN_W(BURST_LEN_W), .ID_W(ID_W)
     ) axi_read (
         .clk(clk), .resetb(resetb),
         .rd_req_valid(rd_req_valid), .rd_req_ready(rd_req_ready),
