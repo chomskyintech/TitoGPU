@@ -1,8 +1,8 @@
-# Lesson 11 — Building a Single-Burst AXI4 Write Controller
+# Lesson 11 — Building an AXI4 Write Controller with Burst Splitting
 
 ## Goal
 
-Learn how to move a stream of completed accelerator result words into external memory through the AXI4 AW, W, and B channels. This lesson covers the standalone write controller only; it does not claim the controller is connected to the accelerator result store.
+Learn how to move a stream of completed accelerator result words into external memory through the AXI4 AW, W, and B channels. This lesson focuses on the standalone controller; Lessons 12–14 cover result streaming, top-level integration, and burst splitting.
 
 ## Read these linked files first
 
@@ -50,7 +50,8 @@ The focused testbench exercises:
 3. A three-beat burst with WLAST only on the final beat.
 4. Delayed B response and the distinction between BREADY and done.
 5. SLVERR response handling.
-6. Rejection of zero-length, unaligned, 4-KiB-crossing and over-256-beat commands.
+6. Rejection of zero-length, unaligned and over-256-beat commands.
+7. A 256-beat stream crossing a 4-KiB boundary, including two AW handshakes, two B responses, and WLAST on beats 63 and 255.
 
 The CI run for the controller milestone passed both the full `make sim` suite and `make synth-writeback`: [run 39542140516](https://github.com/chomskyintech/TitoGPU/actions/runs/39542140516).
 
@@ -69,11 +70,11 @@ The CI run for the controller milestone passed both the full `make sim` suite an
 2. AWADDR, AWLEN, AWSIZE, AWBURST and AWVALID must remain stable until the handshake.
 3. WDATA, WSTRB, WLAST and WVALID remain stable. The stream producer must not replace the buffered word until the controller accepts it.
 4. BREADY indicates the receiver can accept a response. Completion occurs only when BVALID and BREADY are both high, and a successful completion additionally requires OKAY BRESP.
-5. Two 4-byte beats span eight bytes and cross the 4-KiB boundary at 0x1000.
+5. The first burst must stop at the boundary: one beat at `0xFFC` with AWLEN 0, then one beat at `0x1000` with AWLEN 0.
 6. The current result interface is a read port without an explicit stream-ready handshake. A separate result-stream adapter must sequence addresses/data and handle synchronous read latency before integration.
 
 ## Exit criteria and limitations
 
-You can trace the AW/W/B lifecycle, explain all backpressure guarantees, calculate burst fields, and distinguish protocol completion from data-channel completion. The module is a restricted single-burst prototype—not a complete AXI4 master. It has no retries, timeouts, abort protocol, partial final beats, burst splitting, multiple outstanding IDs, cache coherence, or end-to-end accelerator writeback. Generic synthesis is not physical timing, area, power, or performance-per-watt evidence.
+You can trace the AW/W/B lifecycle, explain all backpressure guarantees, calculate burst fields, and distinguish protocol completion from data-channel completion. The module is a restricted single-outstanding-burst-at-a-time prototype—not a complete AXI4 master. A single command can contain up to 256 beats and may be split into multiple bursts at 4-KiB boundaries. It has no retries, timeouts, abort protocol, partial final beats, multiple outstanding IDs, or cache coherence. Generic synthesis is not physical timing, area, power, or performance-per-watt evidence.
 
-**Next milestone:** [Lesson 12 — synchronous result streaming into AXI writeback](12-result-stream-writeback.md) covers the standalone bridge between the synchronous result-memory port and the write controller. Top-level integration with the actual accelerator and arbitration against host result reads is still pending.
+**Related lessons:** [Lesson 12 — synchronous result streaming](12-result-stream-writeback.md), [Lesson 13 — integrated AXI writeback](13-integrated-axi-writeback.md), and [Lesson 14 — legal AXI burst splitting](14-axi4-burst-splitting.md).
