@@ -21,7 +21,7 @@ The preloaded-matrix `tito_systolic_matmul` scheduler remains as a bring-up refe
 
 Module: `tito_systolic_command_accelerator`.
 
-- Load A and B through `mem_wr_en`, `mem_wr_bank`, `mem_wr_addr`, and `mem_wr_data`. `mem_wr_bank=0` selects A and `1` selects B. A write is accepted only while the wrapper is idle; the shared port writes one element per cycle.
+- Load A and B through the write-valid signal `mem_wr_en`, `mem_wr_bank`, `mem_wr_addr`, and `mem_wr_data`. `mem_wr_bank=0` selects A and `1` selects B. `mem_wr_ready` is asserted only while the wrapper is idle. A write is accepted on a rising clock edge when both `mem_wr_en` and `mem_wr_ready` are high. A host or DMA producer must hold valid, address, and data stable until ready is high; this is a ready/valid ingress handshake, not a DMA engine.
 - A one-cycle `cmd_start` pulse launches one matrix operation. `busy` stays high through computation and result writeback. Start pulses while busy are ignored. `cmd_accumulate=0` replaces output entries with the current tile's partial sums; `cmd_accumulate=1` adds them to the existing result entries. The mode is latched when the start pulse is accepted.
 - After the compute core finishes, the wrapper copies the N×N accumulator values into a local result register bank, one output per cycle. `done` is a one-cycle pulse after the final result has been written, and `busy` deasserts at the same time.
 - Read results with `result_rd_en` and `result_rd_addr`. `result_rd_data` and `result_rd_valid` are registered; valid is asserted for the cycle in which the requested result is returned. The linear result address is `row*N+column`.
