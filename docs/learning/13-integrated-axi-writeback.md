@@ -66,6 +66,8 @@ The full simulation and generic synthesis passed in [RTL regression run 39542794
 
 ## Limitations and next steps
 
-The write path currently emits one full-width burst and rejects unsupported alignment or 4-KiB crossing rather than splitting transfers. It supports 32-bit result words, fixed AWID zero, and one outstanding transaction. It has no retries, timeout, abort, cache coherence, partial final beats, or multiple outstanding IDs. The testbench uses a functional memory model, not vendor AXI VIP or a real interconnect.
+The write path supports 32-bit result words and up to 256 words per command. The controller splits a command at 4-KiB boundaries, allows one outstanding burst at a time, and fixes AWID to zero. It has no retries, timeout, abort, cache coherence, partial final beats, or multiple outstanding IDs. The testbench uses a functional memory model, not vendor AXI VIP or a real interconnect.
 
-Next, implement legal burst splitting for larger output matrices, then add BRESP fault injection and recovery policy at the integrated wrapper. Physical timing, area, power and performance-per-watt still require implementation and measurement beyond generic Yosys synthesis.
+The next verification task is systematic BRESP fault injection on both the first and later burst, checking that a failed response terminates the command without issuing any further AW request. Physical timing, area, power and performance-per-watt still require implementation and measurement beyond generic Yosys synthesis.
+
+See [Lesson 14 — legal AXI4 burst splitting](14-axi4-burst-splitting.md) for the boundary arithmetic, counter roles, and directed 64 + 192 beat regression.
