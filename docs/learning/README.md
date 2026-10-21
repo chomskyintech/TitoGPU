@@ -59,3 +59,8 @@ Do not create a new lesson for every commit. Update an existing lesson when a ch
 
 These are learning gates, not claims that the milestones have already passed. Record a gate as complete only when the required evidence exists.
 
+
+
+## Lesson 02 — K-Dimension Tiling and Partial-Sum Accumulation
+
+[Open the lesson](02-k-dimension-tiling.md). Learn how a fixed K=4 tile handles larger matrix reductions, how replace/accumulate modes combine partial sums, and how to test the result against an independent reference model.
