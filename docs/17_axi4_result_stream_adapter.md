@@ -52,9 +52,9 @@ The result-stream test models a synchronous result memory and a write memory. It
 
 The regression is a functional simulation, not vendor AXI VIP or a physical implementation.
 
-## Integration boundary
+## Integration and host-read arbitration
 
-The main accelerator wrapper still exposes the result read port to the host and does not yet instantiate this writeback block. The next milestone must add a mux/arbitration policy between host result reads and writeback reads, then integrate the writeback controls and AW/W/B ports. Host reads must be stalled or rejected while writeback owns the single synchronous result port; they must not silently race it.
+The top-level wrapper now instantiates this block and exposes writeback start/base-address, busy/done/error, and AW/W/B signals. A host result read has priority if it coincides with a writeback start request; writeback start-ready stays low until the host request is no longer asserted. During writeback, `result_rd_ready` is low and host `result_rd_valid` is suppressed. Clients must honor this ownership signal and must not issue result reads while writeback owns the single synchronous port. See [Lesson 13 — integrated AXI writeback](learning/13-integrated-axi-writeback.md).
 
 ## Limitations
 
