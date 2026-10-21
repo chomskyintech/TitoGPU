@@ -18,11 +18,13 @@ module tito_systolic_double_buffered_command_accelerator #(
     input  wire                         resetb,
     input  wire                         mem_wr_en, // write-valid: held with address/data until ready
     output wire                         mem_wr_ready,
-    input  wire                         mem_wr_buffer, // ping-pong buffer being filled\n    input  wire                         mem_wr_bank, // 0 = A, 1 = B
+    input  wire                         mem_wr_buffer, // ping-pong buffer being filled
+    input  wire                         mem_wr_bank, // 0 = A, 1 = B
     input  wire [MEM_ADDR_W-1:0]        mem_wr_addr,
     input  wire [DATA_W-1:0]            mem_wr_data,
     input  wire                         cmd_start,
-    input  wire                         cmd_accumulate, // 0 = replace outputs; 1 = add this K tile to prior results\n    input  wire                         cmd_buffer, // buffer selected for this compute tile
+    input  wire                         cmd_accumulate, // 0 = replace outputs; 1 = add this K tile to prior results
+    input  wire                         cmd_buffer, // buffer selected for this compute tile
     output wire                         busy,
     output reg                          done,
     input  wire                         result_rd_en,
@@ -37,7 +39,8 @@ module tito_systolic_double_buffered_command_accelerator #(
     reg [1:0] state;
     reg core_start;
     reg [RESULT_ADDR_W-1:0] writeback_idx;
-    reg accumulate_q;\n    reg compute_buffer_q;
+    reg accumulate_q;
+    reg compute_buffer_q;
     reg [ACC_W-1:0] result_mem [0:N*N-1];
     wire [N*N*ACC_W-1:0] accum_out;
     wire core_busy;
@@ -47,7 +50,8 @@ module tito_systolic_double_buffered_command_accelerator #(
     assign busy = (state != ST_IDLE);
     // Ready/valid write handshake: writes are accepted only while idle.
     // A DMA or host must hold valid/address/data until mem_wr_ready is high.
-    // During compute/writeback, permit writes only to the inactive tile buffer.\n    assign mem_wr_ready = (state == ST_IDLE) || (mem_wr_buffer != compute_buffer_q);
+    // During compute/writeback, permit writes only to the inactive tile buffer.
+    assign mem_wr_ready = (state == ST_IDLE) || (mem_wr_buffer != compute_buffer_q);
     assign core_wr_en = mem_wr_en && mem_wr_ready;
 
     tito_systolic_double_buffered_stream_accelerator #(
@@ -66,7 +70,8 @@ module tito_systolic_double_buffered_command_accelerator #(
             state <= ST_IDLE;
             core_start <= 1'b0;
             writeback_idx <= {RESULT_ADDR_W{1'b0}};
-            accumulate_q <= 1'b0;\n            compute_buffer_q <= 1'b0;
+            accumulate_q <= 1'b0;
+            compute_buffer_q <= 1'b0;
             done <= 1'b0;
             result_rd_data <= {ACC_W{1'b0}};
             result_rd_valid <= 1'b0;
@@ -92,7 +97,8 @@ module tito_systolic_double_buffered_command_accelerator #(
                 ST_IDLE: begin
                     if (cmd_start) begin
                         core_start <= 1'b1;
-                        accumulate_q <= cmd_accumulate;\n                        compute_buffer_q <= cmd_buffer;
+                        accumulate_q <= cmd_accumulate;
+                        compute_buffer_q <= cmd_buffer;
                         state <= ST_COMPUTE;
                     end
                 end
