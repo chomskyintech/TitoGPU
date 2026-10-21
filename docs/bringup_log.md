@@ -123,3 +123,16 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Generic synthesis: **PASS** for the standalone MAC, scheduler wrapper, scratchpad-integrated accelerator, and existing CGRA.
 - Logs/artifacts: [GitHub Actions run #39532514287](https://github.com/chomskyintech/TitoGPU/actions/runs/39532514287)
 - Limitations: the scratchpad is behavioral RTL and may synthesize to registers; it is not a compiled SRAM macro. The wrapper is a prototype and is not integrated with TitoRV, DMA, host command/control, or a software runtime. No physical PPA or CNN/transformer benchmark has been measured.
+
+
+## 2026-10-21 — Banked synchronous-read streaming path passes CI
+
+- Tested commit: `1313476955a5890b7c3c60b88f02d80f654a32d7`
+- Tool and version: Icarus Verilog 12.0; Yosys 0.33
+- Added `rtl/tito_systolic_banked_scratchpad.v`: A memory is banked by output row and B memory by output column, allowing N activation values and N weight values to be read each cycle through per-bank addresses.
+- Added `rtl/tito_systolic_stream_accelerator.v`: a streaming controller drives synchronous reads, delays valid bits to align with returned data, feeds the MAC array, drains the pipeline, and pulses `done`.
+- Streaming integration simulation: **PASS — all 16 signed N=4 matrix-multiply outputs** match an independent integer reference after loading the memories through the write interface.
+- Full `make sim` regression: **PASS**, including prior CGRA, N=2/N=4 MAC, preloaded-matrix scheduler, and scratchpad integration tests.
+- Full `make synth`: **PASS** in GitHub Actions, including generic synthesis of the new streaming accelerator.
+- Logs/artifacts: [GitHub Actions run #39532837926](https://github.com/chomskyintech/TitoGPU/actions/runs/39532837926)
+- Limitations: the banked memories are synthesizable register-array models, not compiled SRAM macros; the shared host write port loads one element per cycle; no DMA, multi-tile tiling, output-memory writeback, quantization, CNN/transformer workload benchmark, or physical PPA flow is present.
