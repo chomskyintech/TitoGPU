@@ -4,16 +4,16 @@ TitoGPU is an experimental, verification-led inference accelerator project. The 
 
 ## Current architecture stage
 
-**Stage: systolic MAC prototype, autonomous K-tile sequencing, and a generic external-memory read frontend under regression.**
+**Stage: systolic MAC prototype, autonomous K-tile sequencing, generic external-memory reads, and ping-pong tile loading under regression.**
 
 The repository contains two parallel compute paths:
 
 - **Original CGRA baseline:** four processing elements, signed INT8 multiplication, 32-bit reduction operations, registered inter-PE routing, and up to eight execution contexts.
-- **Systolic matrix prototype:** parameterized MAC array, banked A/B scratchpad model, feed/drain controller, command wrapper, result-memory writeback, ready/valid burst ingress, autonomous K-tile sequencer, and a generic external-memory read frontend.
+- **Systolic matrix prototype:** parameterized MAC array, banked A/B scratchpad model, feed/drain controller, command wrapper, result-memory writeback, ready/valid burst ingress, autonomous K-tile sequencer, a generic external-memory read frontend, and a double-buffered path that can fill the inactive A/B tile buffer while the other buffer computes.
 
 The systolic path currently computes a physical K=4 tile. Larger reductions are split into multiple tiles. The sequencer automatically launches compute after each A/B tile pair is loaded, replaces result memory for tile zero, and accumulates later tiles. A regression covers K_TOTAL=9 across three tiles, final-tile zero padding, and repeated operations to detect stale results.
 
-The DMA reader prototype requests one A and one B tile per reduction tile from a word-addressed memory interface. It handles one outstanding request, response backpressure, and final-beat checking. It is a **generic read frontend, not an AXI master or production DMA engine**: there is no bus-specific transaction adapter, burst splitting, cache, outstanding IDs, double buffering, or transfer/compute overlap.
+The DMA reader prototype requests one A and one B tile per reduction tile from a word-addressed memory interface. It handles one outstanding request, response backpressure, and final-beat checking. The double-buffered path alternates two local A/B tile sets so memory reads can overlap compute when timing permits. It is still a **generic read frontend, not an AXI master or production DMA engine**: there is no bus-specific transaction adapter, burst splitting, cache, or multiple outstanding request IDs.
 
 This remains prototype RTL, not a production GPU or completed SoC integration. Generic Yosys synthesis is a structural sanity check; it is not technology-mapped area, timing closure, power, or performance-per-watt evidence.
 
@@ -29,11 +29,11 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 - [Command interface and result writeback](rtl/tito_systolic_command_accelerator.v)
 - [Streaming burst command wrapper](rtl/tito_systolic_burst_command_accelerator.v)
 - [Autonomous K-tile burst sequencer](rtl/tito_systolic_tiled_burst_accelerator.v)
-- [External-memory read frontend](rtl/tito_systolic_dma_reader.v)
+- [External-memory read frontend](rtl/tito_systolic_dma_reader.v)\n- [Double-buffered scratchpad](rtl/tito_systolic_double_buffered_banked_scratchpad.v)\n- [Double-buffered compute path](rtl/tito_systolic_double_buffered_stream_accelerator.v)\n- [Double-buffered tiled controller](rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v)\n- [Double-buffered DMA frontend](rtl/tito_systolic_double_buffered_dma_reader.v)
 - [K-dimension tiling test](tb/tb_tito_systolic_k_tiling.v)
 - [Burst loader end-to-end test](tb/tb_tito_systolic_burst_command_accelerator.v)
 - [Autonomous two-tile test](tb/tb_tito_systolic_tiled_burst_accelerator.v)
-- [DMA read frontend test](tb/tb_tito_systolic_dma_reader.v)
+- [DMA read frontend test](tb/tb_tito_systolic_dma_reader.v)\n- [Double-buffered overlap and fault test](tb/tb_tito_systolic_double_buffered_dma_reader.v)
 - [Makefile regression and synthesis targets](Makefile)
 
 ## Documentation and learning path
@@ -46,7 +46,7 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 - [K-dimension tiling specification](docs/08_k_dimension_tiling.md)
 - [Streaming burst loader specification](docs/09_streaming_burst_loader.md)
 - [Autonomous K-tile sequencer specification](docs/10_autonomous_k_tile_burst_sequencer.md)
-- [External-memory read frontend specification](docs/11_external_memory_read_frontend.md)
+- [External-memory read frontend specification](docs/11_external_memory_read_frontend.md)\n- [Double-buffered tile loading specification](docs/12_double_buffered_tile_loading.md)
 - [Decision log](docs/10_decisions_and_tradeoffs.md)
 - [Bring-up and CI log](docs/bringup_log.md)
 - [Hands-on learning guide index](docs/learning/README.md)
@@ -55,7 +55,7 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 - [Lesson 03: Ready/valid handshakes](docs/learning/03-ready-valid-handshake.md)
 - [Lesson 04: Streaming bursts and backpressure](docs/learning/04-streaming-bursts.md)
 - [Lesson 05: Autonomous K-tile sequencing](docs/learning/05-autonomous-k-tile-sequencing.md)
-- [Lesson 06: External-memory read frontend](docs/learning/06-external-memory-read-frontend.md)
+- [Lesson 06: External-memory read frontend](docs/learning/06-external-memory-read-frontend.md)\n- [Lesson 07: Double-buffered tile loading](docs/learning/07-double-buffered-tile-loading.md)
 
 ## Run locally
 
@@ -66,7 +66,7 @@ make sim
 make synth
 ```
 
-The simulation target runs the CGRA and systolic regressions, including command-interface checks, K-tile accumulation, burst loading, autonomous sequencing, and the external-memory read frontend. Check the [GitHub Actions workflow](https://github.com/chomskyintech/TitoGPU/actions) for the result of the exact commit you are using.
+The simulation target runs the CGRA and systolic regressions, including command-interface checks, K-tile accumulation, burst loading, autonomous sequencing, the external-memory read frontend, and ping-pong buffer overlap. Check the [GitHub Actions workflow](https://github.com/chomskyintech/TitoGPU/actions) for the result of the exact commit you are using.
 
 ## Development principles
 
