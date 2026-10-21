@@ -27,7 +27,7 @@ make sim
 make synth-system
 ```
 
-The test should print `PASS: AXI-Lite configured compute and writeback; 16 external-memory results match reference`. CI must pass both the full simulation regression and the new `synth-system` target before treating the milestone as verified.
+The test should print `PASS: AXI-Lite configured compute and writeback; 16 external-memory results match reference`, followed by PASS messages for visible SLVERR reporting and W1C clearing. The full regression and `synth-system` target passed in [CI run 39547281630](https://github.com/chomskyintech/TitoGPU/actions/runs/39547281630).
 
 ## Trace it before running
 
@@ -41,6 +41,7 @@ The test should print `PASS: AXI-Lite configured compute and writeback; 16 exter
 1. Change B's contents and independently update the expected result check.
 2. Add a test that deliberately starts writeback while the compute engine is busy; confirm STATUS bit 31 reports command rejection.
 3. Stretch goal: extend the memory model to insert variable R-channel gaps and run a multi-tile test from the software-visible interface.
+4. Extend fault injection to AXI RRESP errors and define how read errors should be surfaced through the software-visible STATUS/ERROR_CODE contract.
 
 ## Review notes
 
