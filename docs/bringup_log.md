@@ -179,3 +179,16 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - K-tiling hardening: [run #85](https://github.com/chomskyintech/TitoGPU/actions/runs/39536278996) also passed. It repeats the same `K_TOTAL=9` operation without reset to verify the first tile replaces stale results instead of adding to them.
 - Scope/limitations: this is a local scratchpad burst-ingress wrapper, not a complete DMA engine. It does not fetch external memory, generate AXI bursts, overlap transfer and compute, or autonomously schedule K tiles. Yosys results are generic structural synthesis, not physical PPA.
 - Follow-up: implement backpressure/reset tests for the burst stream, then design a real external-memory/DMA backend and double-buffered tile scheduling.
+
+
+## 2026-10-21 — Autonomous multi-tile burst sequencing passes simulation and generic synthesis
+
+- Branch: `feature/tito-systolic-mac`
+- Verified RTL/test commit: [`6de66cb`](https://github.com/chomskyintech/TitoGPU/commit/6de66cbe85cb3f60d4861e329cdce4314bf0a3cb)
+- CI: [run #116](https://github.com/chomskyintech/TitoGPU/actions/runs/39537371207) — **PASS** for the complete `make sim` target and `make synth`.
+- New RTL: `rtl/tito_systolic_tiled_burst_accelerator.v` sequences a host-specified number of tiles. It waits for A and B bursts, launches compute automatically, uses replace mode for tile zero, and accumulates later tiles.
+- End-to-end result: **PASS** — two tile pairs were loaded without host-issued compute commands between them; all 16 final matrix results matched an independent integer reference. The test also checks rejection of a zero tile count.
+- Verification debugging: the first testbench version timed out because its descriptor driver sampled `ready` immediately after changing the bank select, creating a simulation scheduling race. The driver now samples `ready` at a clock edge and only then deasserts `valid`. This is a testbench handshake fix, not a change to the hardware interface.
+- Scope/limitations: the sequencer still depends on a host or future DMA backend to supply each tile. It does not fetch external memory, issue AXI bursts, double-buffer, overlap transfers with compute, or provide physical PPA/performance evidence.
+- Learning material: [Lesson 05 — Autonomous K-Tile Sequencing](learning/05-autonomous-k-tile-sequencing.md).
+- Next milestone: implement an explicit external-memory/DMA read path and then double-buffered tile scheduling, with transfer-error and abort semantics specified before RTL changes.
