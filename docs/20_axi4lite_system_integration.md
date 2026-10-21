@@ -22,7 +22,9 @@ The done bits are event latches, not the raw one-cycle hardware pulses. A comman
 
 `tb/tb_tito_systolic_axi4lite_system.v` models byte-addressed external memory and drives the subsystem exclusively through AXI4-Lite for configuration and commands. It loads an identity matrix A and a known matrix B, launches a single-tile matrix multiplication, requests writeback, then checks all 16 32-bit result words against the independent expected matrix. The AXI memory model checks basic burst fields and handles the read/write handshakes.
 
-Run:
+Verified in [GitHub Actions run 39546652913](https://github.com/chomskyintech/TitoGPU/actions/runs/39546652913): the full `make sim` regression passed, including the AXI-Lite-only end-to-end test, and the `make synth-system` generic synthesis target passed.
+
+Run locally:
 
 ```sh
 make sim
