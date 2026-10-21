@@ -1,19 +1,36 @@
 # TitoGPU
 
-TitoGPU is an experimental, verification-led hardware accelerator project focused on inference-oriented integer matrix computation and a carefully documented path toward integration with the TitoRV RISC-V core.
+TitoGPU is an experimental, verification-led hardware accelerator project focused on inference-oriented integer matrix computation and a carefully documented path toward later integration with the TitoRV RISC-V core.
 
 ## Current status
 
-**Stage: baseline audit and verification bring-up.** The repository currently contains specifications and audit notes, not accelerator RTL. No simulation/synthesis result or TitoRV integration is claimed by this repository yet.
+**Stage: imported CGRA baseline; reproducible verification is being brought up.** The repository now contains the standalone 2x2 CGRA RTL, its directed dot-product testbench, a Yosys synthesis script, and a Makefile copied from the `cgra-standalone` branch of [TitoRV](https://github.com/chomskyintech/TitoRV/tree/cgra-standalone/cgra_standalone).
 
-The TitoRV `cgra-standalone` branch already contains a 2x2 CGRA with four processing elements, signed INT8 multiplication, 32-bit reduction operations, and a directed dot-product testbench. The first task is to reproduce and review that baseline rather than duplicate the datapath blindly.
+This is a source import, **not yet CPU/SoC integration**. No simulation or synthesis pass should be assumed until the GitHub Actions workflow completes successfully. The CGRA currently has four processing elements, signed INT8 multiplication, 32-bit reduction operations, registered inter-PE routing, and up to eight execution contexts.
 
+- [CGRA processing element](rtl/cgra_pe.v)
+- [2x2 CGRA array and routing](rtl/cgra_array.v)
+- [CGRA context controller/top level](rtl/cgra_top.v)
+- [Directed dot-product testbench](tb/tb_cgra.v)
+- [Generic Yosys synthesis script](synth/synth.ys)
+- [Local integration plan](docs/cgra-integration-plan.md)
 - [Project scope and milestones](docs/00_project_scope.md)
 - [Architecture proposal](docs/01_architecture.md)
-- [Existing CGRA source audit](docs/02_existing_cgra_audit.md)
+- [Source audit](docs/02_existing_cgra_audit.md)
 - [Verification plan](docs/06_verification_plan.md)
 - [Decision log](docs/10_decisions_and_tradeoffs.md)
 - [Bring-up log](docs/bringup_log.md)
+
+## Run locally
+
+Install Icarus Verilog and Yosys, then run:
+
+```sh
+make sim
+make synth
+```
+
+The directed testbench expects dot-product results of 20 and 100. These are test expectations, not reported results; check the CI logs to see whether the current revision passes.
 
 ## Design principles
 
@@ -23,24 +40,10 @@ The TitoRV `cgra-standalone` branch already contains a 2x2 CGRA with four proces
 4. Make performance claims reproducible from source, scripts, tool versions, constraints, and logs.
 5. Separate simulation correctness from synthesis estimates, timing closure, power estimates, and silicon measurements.
 
-## Planned layout
-
-```text
-rtl/              accelerator RTL, after source-of-truth decision
-tb/               unit and integration testbenches
-tests/            directed, randomized, and inference-like cases
-scripts/          reproducible simulation/lint/synthesis commands
-docs/             specifications, audit, results, and decisions
-benchmarks/       workloads and measured results
-.github/workflows/ CI regression
-```
-
-This is a planned layout, not a claim that the directories or RTL already exist.
-
 ## TitoRV interface caveat
 
-The inspected `tapeout_project/riscv_core.v` has a single-outstanding AXI-Lite-style data interface and stalls the pipeline while transactions are outstanding. The proposed CGRA AXI-Lite register map in TitoRV documentation is not the same as an implemented wrapper. The system interconnect, memory arbitration, and bulk data movement must be reviewed before integration.
+The inspected `tapeout_project/riscv_core.v` has a single-outstanding AXI-Lite-style data interface and stalls the pipeline while transactions are outstanding. The proposed CGRA AXI-Lite register map in the source project is a plan, not an implemented wrapper. Before CPU integration, review the system interconnect, address decoding, memory arbitration, and bulk data movement. The standalone CGRA remains bus-independent for now.
 
-## License
+## License and provenance
 
-No license has been selected yet. Until one is added, do not assume this repository grants permissions beyond those provided by applicable law.
+The imported RTL, testbench, Makefile, and synthesis script originate from [TitoRV's `cgra-standalone` branch](https://github.com/chomskyintech/TitoRV/tree/cgra-standalone/cgra_standalone). The project license has not yet been selected; do not assume a license grant beyond applicable law. Decide and document licensing before external distribution.
