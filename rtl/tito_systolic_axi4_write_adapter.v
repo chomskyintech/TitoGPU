@@ -6,6 +6,7 @@ module tito_systolic_axi4_write_adapter #(
     parameter integer ADDR_W=32,
     parameter integer DATA_W=32,
     parameter integer LEN_W=9,
+    parameter integer ID_W=4,
     parameter integer MAX_BURST_BEATS=256,
     parameter integer BYTES_PER_BEAT=DATA_W/8,
     parameter integer SIZE=$clog2(BYTES_PER_BEAT)
@@ -20,6 +21,7 @@ module tito_systolic_axi4_write_adapter #(
     output reg busy, done, error,
     output reg [3:0] error_code,
 
+    output wire [ID_W-1:0] m_axi_awid,
     output reg [ADDR_W-1:0] m_axi_awaddr,
     output reg [7:0] m_axi_awlen,
     output wire [2:0] m_axi_awsize,
@@ -58,6 +60,7 @@ module tito_systolic_axi4_write_adapter #(
                          (cmd_beats>MAX_BURST_BEATS) ? 1'b1 :
                          (({1'b0,cmd_addr[11:0]} + span_bytes)>4096) ? 1'b1 : 1'b0;
     assign cmd_ready = !active;
+    assign m_axi_awid = {ID_W{1'b0}};
     assign m_axi_awsize = SIZE[2:0];
     assign m_axi_awburst = 2'b01;
     assign m_axi_awvalid = active && !aw_done;
