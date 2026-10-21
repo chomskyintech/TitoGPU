@@ -57,10 +57,10 @@ module tb_tito_systolic_axi4_read_adapter;
         input [LEN_W-1:0] len;
         begin
             @(negedge clk);
+            m_axi_arready=1;
             rd_req_addr=addr; rd_req_len=len; rd_req_valid=1;
-            tick();
-            while (!rd_req_ready) tick();
-            @(negedge clk); rd_req_valid=0;
+            @(posedge clk); #1;
+            @(negedge clk); rd_req_valid=0; m_axi_arready=0;
         end
     endtask
 
