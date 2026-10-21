@@ -108,6 +108,13 @@ module tb_tito_systolic_axi4lite_system;
   repeat(4) @(negedge clk); resetb=1;
   axil_write('h08,'h0100); axil_write('h0C,'h0200); axil_write('h10,1); axil_write('h14,'h0300);
   axil_write('h00,1);
+  // A second start while compute is active must be rejected and latched.
+  axil_write('h00,1);
+  axil_read('h04,status);
+  if(!status[31]) $fatal(1,"busy compute command was not rejected in STATUS");
+  axil_write('h04,'h80000000); // W1C command-rejected status
+  axil_read('h04,status);
+  if(status[31]) $fatal(1,"command-rejected W1C did not clear status");
   cycles=0; status=0;
   while(!status[1] && !status[2] && cycles<5000) begin axil_read('h04,status); cycles=cycles+1; end
   if(!status[1] || status[2]) $fatal(1,"compute did not complete successfully, STATUS=%h",status);
