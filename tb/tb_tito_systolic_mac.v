@@ -56,8 +56,13 @@ module tb_tito_systolic_mac;
                 end
             end
 
-            // Drain the remaining registered values through the array.
-            repeat (N) @(negedge clk);
+            // Stop injecting, then drain the remaining registered values.
+            @(negedge clk);
+            a_valid = 0;
+            b_valid = 0;
+            a_in = 0;
+            b_in = 0;
+            repeat (N+1) @(negedge clk);
             #1;
             checks = checks + 1;
             if (($signed(accum_out[0*ACC_W +: ACC_W]) !== expected00) ||
@@ -92,7 +97,7 @@ module tb_tito_systolic_mac;
         matrix_a[1][0]=-3; matrix_a[1][1]=4;
         matrix_b[0][0]=5; matrix_b[0][1]=-6;
         matrix_b[1][0]=7; matrix_b[1][1]=8;
-        run_and_check(9, 10, 13, 50);
+        run_and_check(9, 22, 13, 50);
 
         $display("PASS: systolic MAC matrix tests (%0d matrices)", checks);
         $finish;
