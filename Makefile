@@ -5,6 +5,8 @@ RTL = rtl/cgra_pe.v rtl/cgra_array.v rtl/cgra_top.v
 sim:
 	iverilog -g2012 -Wall -o build_cgra_pe rtl/cgra_pe.v tb/tb_cgra_pe.v
 	vvp build_cgra_pe
+	iverilog -g2012 -Wall -o build_cgra_controller $(RTL) tb/tb_cgra_controller.v
+	vvp build_cgra_controller
 	iverilog -g2012 -Wall -o build_cgra $(RTL) tb/tb_cgra.v
 	vvp build_cgra
 
@@ -12,4 +14,4 @@ synth:
 	yosys -s synth/synth.ys
 
 clean:
-	rm -f build_cgra build_cgra_pe *.vcd
+	rm -f build_cgra build_cgra_pe build_cgra_controller *.vcd
