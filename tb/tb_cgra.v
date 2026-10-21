@@ -58,12 +58,12 @@ endfunction
 
 task write_context;
     input [1:0] pe;
-    input [2:0] context;
+    input [2:0] ctx_idx;
     input [31:0] value;
     begin
         @(negedge clk);
         cfg_pe = pe;
-        cfg_context = context;
+        cfg_context = ctx_idx;
         cfg_wdata = value;
         cfg_we = 1'b1;
         @(negedge clk);
