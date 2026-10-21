@@ -28,7 +28,7 @@ module tb_tito_systolic_axi4_result_writeback;
     wire bready;
     reg [31:0] result_mem[0:3];
     reg [31:0] output_mem[0:3];
-    integer aw_count, w_count, cycle_count, i;
+    integer aw_count, w_count, cycle_count, i, rd_count;
     reg b_handshake_seen;
 
     tito_systolic_axi4_result_writeback #(.N(N),.DATA_W(DATA_W),.ADDR_W(ADDR_W)) dut (
@@ -58,8 +58,9 @@ module tb_tito_systolic_axi4_result_writeback;
     // Capture external-memory write beats at accepted W handshakes.
     always @(posedge clk or negedge resetb) begin
         if (!resetb) begin
-            aw_count<=0; w_count<=0; b_handshake_seen<=0;
+            aw_count<=0; w_count<=0; rd_count<=0; b_handshake_seen<=0;
         end else begin
+            if (result_rd_en) rd_count<=rd_count+1;
             if (awvalid && awready) begin
                 aw_count<=aw_count+1;
                 if (awid!==0 || awaddr!==16'h0100 || awlen!==3 ||
@@ -84,7 +85,7 @@ module tb_tito_systolic_axi4_result_writeback;
         begin
             @(negedge clk); resetb=0;
             start_valid=0; result_base_addr=0; awready=0; wready=0;
-            bresp=0; bvalid=0; aw_count=0; w_count=0; cycle_count=0;
+            bresp=0; bvalid=0; aw_count=0; w_count=0; rd_count=0; cycle_count=0;
             repeat(3) @(negedge clk);
             resetb=1;
             @(negedge clk);
@@ -132,8 +133,8 @@ module tb_tito_systolic_axi4_result_writeback;
         tick();
         @(negedge clk); bvalid=0;
         repeat(2) tick();
-        if (!done || error || busy || !b_handshake_seen) begin
-            $display("DEBUG: done=%b error=%b busy=%b b_handshake_seen=%b writer_done=%b writer_error=%b",done,error,busy,b_handshake_seen,dut.writer_done,dut.writer_error);
+        if (!done || error || busy || !b_handshake_seen || rd_count!=4 || dut.stream_buf_valid) begin
+            $display("DEBUG: done=%b error=%b busy=%b b_handshake_seen=%b writer_done=%b writer_error=%b rd_count=%0d buf_valid=%b",done,error,busy,b_handshake_seen,dut.writer_done,dut.writer_error,rd_count,dut.stream_buf_valid);
             $fatal(1,"FAIL: writeback completion status incorrect");
         end
         $display("PASS: synchronous result reads written byte-for-byte through AXI W channel");
