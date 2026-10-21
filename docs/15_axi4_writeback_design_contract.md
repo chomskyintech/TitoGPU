@@ -16,7 +16,7 @@ The writeback controller consumes a result stream from the accelerator and emits
 - Address channel: `m_axi_awaddr`, `m_axi_awlen`, `m_axi_awsize`, `m_axi_awburst`, `m_axi_awvalid`, `m_axi_awready`.
 - Data channel: `m_axi_wdata`, `m_axi_wstrb`, `m_axi_wlast`, `m_axi_wvalid`, `m_axi_wready`.
 - Response channel: `m_axi_bresp`, `m_axi_bvalid`, `m_axi_bready`.
-- Status: `busy`, sticky `done`, and sticky `error` with a small `error_code`.
+- Status: `writeback_busy`, one-cycle `writeback_done`, sticky `writeback_error`, and `writeback_error_code[3:0]`.
 
 The wrapper must not silently assume the result producer can be stalled unless the result interface explicitly includes ready/valid backpressure. Do not connect this to the current result read port until its timing and handshake semantics have been reviewed.
 
@@ -41,7 +41,7 @@ Unaligned base addresses are rejected before asserting `AWVALID`. The controller
 
 ## Implemented interface details
 
-The current module drives fixed `AWID=0` and uses `cmd_valid/cmd_ready`, a `cmd_addr` byte address, and `cmd_beats` count. The result stream is one full-width bus beat per handshake (`stream_valid/stream_ready`, `stream_data`, `stream_last`). The default bus is 32 bits, so every stream item is one 32-bit write beat and `WSTRB=4'b1111`. The controller accepts one command of up to 256 beats and may issue multiple sequential bursts. Each `AWLEN` is the selected burst beat count minus one; the address advances only after an OKAY B response. Error codes distinguish zero length, unaligned address, over-256 total beat count, stream-last mismatch, and non-OKAY BRESP. A stream-last mismatch is fatal and requires reset/system quiescence because an AW handshake may already have occurred.
+The current module drives fixed `AWID=0` and uses `cmd_valid/cmd_ready`, a `cmd_addr` byte address, and `cmd_beats` count. The wrapper exposes the status contract in [document 18](18_axi4_writeback_status_contract.md): busy is a level, done is a one-cycle success pulse, error and error code remain visible until the next accepted start or reset, and code 6 represents either SLVERR or DECERR. The result stream is one full-width bus beat per handshake (`stream_valid/stream_ready`, `stream_data`, `stream_last`). The default bus is 32 bits, so every stream item is one 32-bit write beat and `WSTRB=4'b1111`. The controller accepts one command of up to 256 beats and may issue multiple sequential bursts. Each `AWLEN` is the selected burst beat count minus one; the address advances only after an OKAY B response. Error codes distinguish zero length, unaligned address, over-256 total beat count, stream-last mismatch, and non-OKAY BRESP. A stream-last mismatch is fatal and requires reset/system quiescence because an AW handshake may already have occurred.
 
 The controller unit regression verifies the listed channel and command cases. The result-stream adapter regression checks the synchronous result port and the integrated top-level regression verifies actual computed output writeback plus host-read/writeback arbitration. These are RTL simulation tests; they do not test a real AXI interconnect or physical PPA.
 
@@ -65,8 +65,8 @@ The controller unit regression verifies the listed channel and command cases. Th
 1. Implement and unit-test the write adapter/controller independently.
 2. Add the controller to `make sim` and generic synthesis targets.
 3. Implement and verify the synchronous result-stream adapter; complete. Integrate it into the top-level accelerator wrapper with arbitration between host result reads and writeback reads; complete and covered by the integrated regression.
-4. Add an end-to-end memory model and test writeback under channel stalls and injected response errors; completed for first- and second-burst SLVERR plus successful no-reset relaunch recovery in [RTL regression run 39545166522](https://github.com/chomskyintech/TitoGPU/actions/runs/39545166522).
-5. Document the burst-boundary and response-fault milestones in [Lesson 14](learning/14-axi4-burst-splitting.md) and [Lesson 15](learning/15-axi4-bresp-fault-injection.md).
+4. Add an end-to-end memory model and test writeback under channel stalls and injected response errors; first- and second-burst fault injection and no-reset relaunch recovery passed in [RTL regression run 39545166522](https://github.com/chomskyintech/TitoGPU/actions/runs/39545166522). Status-code exposure and sticky/pulse/DECERR assertions are added in the current regression run; check the run conclusion before treating that extension as verified.
+5. Document burst splitting, response faults, and software-visible status in [Lesson 14](learning/14-axi4-burst-splitting.md), [Lesson 15](learning/15-axi4-bresp-fault-injection.md), and [Lesson 16](learning/16-axi4-writeback-status-recovery.md).
 
 ## Non-goals
 
