@@ -127,8 +127,11 @@ module tb_tito_systolic_tiled_burst_accelerator;
         end
 
         for (t=0;t<2;t=t+1) begin
+            $display("INFO: loading tile %0d A",t);
             load_a();
+            $display("INFO: loading tile %0d B",t);
             load_b();
+            $display("INFO: submitted tile %0d operands at time %0t",t,$time);
         end
 
         cycles=0;
@@ -162,7 +165,7 @@ module tb_tito_systolic_tiled_burst_accelerator;
 
     initial begin
         #100000;
-        $display("TIMEOUT: tiled burst accelerator");
+        $display("TIMEOUT: tiled burst accelerator state=%0d busy=%b core_busy=%b core_done=%b a_loaded=%b b_loaded=%b remaining=%0d index=%0d ready=%b data_ready=%b", dut.state,op_busy,dut.core_busy,dut.core_done,dut.a_loaded,dut.b_loaded,dut.tiles_remaining,dut.tile_index,burst_start_ready,data_ready);
         $fatal(1);
     end
 endmodule
