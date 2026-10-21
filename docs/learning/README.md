@@ -89,3 +89,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 07 — Double-Buffered Tile Loading
 
 [Open the lesson](07-double-buffered-tile-loading.md). Learn buffer ownership, overlap between compute and memory reads, and verification of ping-pong scheduling.
+
+
+## Lesson 08 — AXI4 Read Adapter
+
+[Open the lesson](08-axi4-read-adapter.md). Learn beat-address to byte-address conversion, AXI burst fields, independent AR/R handshakes, and response-error handling.
