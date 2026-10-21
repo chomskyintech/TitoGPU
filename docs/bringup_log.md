@@ -166,7 +166,7 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - CI: [run #84](https://github.com/chomskyintech/TitoGPU/actions/runs/39536044752) — **PASS**.
 - The complete `make sim` target and generic Yosys synthesis completed successfully with the first K-dimension tiling regression included.
 - Test case: signed INT8 matrix multiplication with `K_TOTAL=9`, using three `K_TILE=4` commands and zero-padding for the final tile. The test reads back and compares all 16 output elements against an independently computed reference.
-- Follow-up hardening: commit [`0087867`](https://github.com/chomskyintech/TitoGPU/commit/008786722943506381754ec95ca46c82eebe7f85) repeats the same operation without reset to verify first-tile replace mode prevents stale result accumulation. Its CI run [#85](https://github.com/chomskyintech/TitoGPU/actions/runs/39536278996) was queued at the time this entry was written; do not treat that added check as passed until the run completes successfully.
+- Follow-up hardening: commit [`0087867`](https://github.com/chomskyintech/TitoGPU/commit/008786722943506381754ec95ca46c82eebe7f85) repeats the same operation without reset to verify first-tile replace mode prevents stale result accumulation. Its CI run [#85](https://github.com/chomskyintech/TitoGPU/actions/runs/39536278996) passed, including the repeated-operation check.
 - Scope: this verifies host-driven partial-sum accumulation, not an autonomous K-tile sequencer, DMA, memory bandwidth, physical PPA, or CNN/transformer performance.
 
 ## 2026-10-21 — Streaming burst tile loader passes simulation and generic synthesis
@@ -192,3 +192,17 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Scope/limitations: the sequencer still depends on a host or future DMA backend to supply each tile. It does not fetch external memory, issue AXI bursts, double-buffer, overlap transfers with compute, or provide physical PPA/performance evidence.
 - Learning material: [Lesson 05 — Autonomous K-Tile Sequencing](learning/05-autonomous-k-tile-sequencing.md).
 - Next milestone: implement an explicit external-memory/DMA read path and then double-buffered tile scheduling, with transfer-error and abort semantics specified before RTL changes.
+
+
+## 2026-10-21 — External-memory read frontend passes end-to-end regression and synthesis
+
+- Branch: `feature/tito-systolic-mac`
+- Verified RTL/test commit: [`12ed58e`](https://github.com/chomskyintech/TitoGPU/commit/12ed58ecf4d26f84ec680c1b00ba5724bd0e45a1)
+- CI: [run #130](https://github.com/chomskyintech/TitoGPU/actions/runs/39537924758) — **PASS** for the complete `make sim` target and `make synth`.
+- New RTL: `rtl/tito_systolic_dma_reader.v` connects a generic single-outstanding memory-read request/response interface to the local burst loader and autonomous K-tile sequencer. It requests A/B tiles in sequence, forwards response beats with backpressure, and checks the final-beat marker.
+- End-to-end result: **PASS** — four read requests (A and B for each of two tiles) produced 16 correct final matrix outputs against an independent reference. The mock memory also stalls request acceptance to exercise request backpressure.
+- Fault injection: **PASS** — an early `rd_data_last` marker is rejected, `op_error` is asserted, and the local compute block is held in reset rather than continuing with a partial tile.
+- Interface contract: addresses are word-addressed in DATA_W-bit beats; each tile is N*K beats; responses are ordered; only one request may be outstanding. The reader is not an AXI master and does not perform byte-address conversion or burst splitting.
+- Recovery limitation: a malformed response or memory error enters a fatal state; external reset is required. A production design still needs a defined abort/flush protocol and error status codes.
+- Learning material: [Lesson 06 — External-Memory Read Frontend](learning/06-external-memory-read-frontend.md).
+- Next milestone: add double-buffered operand storage and overlap loading tile t+1 with computation of tile t. Specify bank ownership and backpressure before changing the controller.
