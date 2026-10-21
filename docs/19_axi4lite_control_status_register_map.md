@@ -37,6 +37,10 @@ All registers are 32-bit words, byte addressed, and must be accessed at 4-byte-a
 - WSTRB is honored on address registers and status W1C fields.
 - Unsupported or unaligned register accesses return DECERR.
 
+## Verification evidence
+
+The full `make sim` regression and generic synthesis targets `make synth-axi`, `make synth-writeback`, and `make synth-control` passed in [RTL regression run 39546241266](https://github.com/chomskyintech/TitoGPU/actions/runs/39546241266). The AXI-Lite-specific test checks independent AW/W ordering, register read/write behavior, byte strobes, busy/combined-start rejection, status W1C semantics, read backpressure, and DECERR responses.
+
 ## Limitations and integration boundary
 
 This is a standalone register bank. It does not yet instantiate or wrap `tito_systolic_axi4_double_buffered_accelerator`; the surrounding system must connect its command outputs and status inputs to the accelerator. The first version does not include interrupts, privilege protection, an interconnect, clock-domain crossing, or a DMA/IOMMU. The accelerator's result writeback is still limited to aligned 32-bit words and at most 256 result beats per command.
