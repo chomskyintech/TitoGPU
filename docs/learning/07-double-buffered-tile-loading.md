@@ -1,0 +1,80 @@
+# Lesson 07 — Double-Buffered Tile Loading
+
+## Goal
+
+Understand how two operand-buffer sets let an accelerator load the next K tile while the current tile is computing, and how the controller prevents read/write conflicts.
+
+## 1. Why two buffers?
+
+With one A/B tile buffer, the sequence is:
+
+1. Load A and B.
+2. Compute the tile.
+3. Load the next A and B.
+4. Compute again.
+
+The memory interface is idle during compute, and the compute array is idle during loading. Two buffers let those activities overlap: buffer 0 may be read by compute while buffer 1 is written by the memory frontend. The controller swaps ownership after compute completes and the next tile is ready.
+
+This does not make external memory faster, and it does not guarantee zero stalls. If a tile takes longer to load than the previous compute takes, the array waits for data. If compute takes longer, the next tile waits in the inactive buffer.
+
+## 2. Code tour
+
+Open these files:
+
+- `rtl/tito_systolic_double_buffered_banked_scratchpad.v`: separate A/B memories for buffer 0 and buffer 1.
+- `rtl/tito_systolic_double_buffered_stream_accelerator.v`: selects which buffer supplies the systolic array.
+- `rtl/tito_systolic_double_buffered_command_accelerator.v`: blocks writes to the compute buffer but permits writes to the inactive buffer.
+- `rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v`: waits for both compute completion and the next A/B pair before switching tiles.
+- `rtl/tito_systolic_double_buffered_dma_reader.v`: feeds tile bursts from a generic read-response interface.
+
+The key ownership rule is simple: **compute reads one buffer; DMA writes the other**. The compute-buffer selection is latched for each command, so it cannot change halfway through a tile.
+
+## 3. The two independent completion events
+
+The controller must coordinate two activities:
+
+- `core_done`: current compute and result writeback have finished.
+- `next_ready_q`: both A and B bursts for the next tile have completed.
+
+If compute finishes first, the controller waits for the next tile. If loading finishes first, the tile waits in the inactive buffer. It launches the next compute only when both conditions are satisfied.
+
+This is the core of overlap scheduling. Do not assume a fixed order between these events.
+
+## 4. Verification tour
+
+Open `tb/tb_tito_systolic_double_buffered_dma_reader.v`.
+
+The test:
+1. Provides two distinct A/B tile pairs.
+2. Applies backpressure to external read-request acceptance.
+3. Serves four requests: A0, B0, A1, B1.
+4. Checks all 16 accumulated matrix outputs against an independent reference.
+5. Asserts that the A1 request was accepted while the compute core was busy.
+6. Injects an early `rd_data_last` marker and verifies fail-closed error handling.
+
+Run:
+
+```sh
+make sim
+make synth-double-buffered
+```
+
+A passing result proves the tested sequence and overlap condition; it does not establish throughput or PPA for a physical implementation.
+
+## 5. Exercises
+
+1. **Trace:** For three K tiles, list the buffer used for each compute and each prefetch. The expected sequence is compute buffer 0 / fill buffer 1, then compute buffer 1 / fill buffer 0, then compute buffer 0.
+2. **Race analysis:** Why must the compute-buffer selection remain stable through result writeback? What could happen if a later descriptor changed it during a compute?
+3. **Stall analysis:** Modify the memory model to insert a 10-cycle pause before returning B1. Confirm the controller waits without launching tile 1 early.
+4. **Performance measurement:** Add cycle counters for total operation cycles, compute-busy cycles, and memory-response cycles. Report the overlap and idle gap rather than claiming performance from simulation alone.
+5. **Stretch:** Define an abort protocol that drains or cancels a read response, marks partial results invalid, and allows a later operation without asserting global reset.
+
+## 6. Limitations
+
+The current design has two local tile buffers but only one outstanding memory read and sequential A/B requests. It does not implement AXI/NoC transactions, burst splitting, SRAM macros, cache, or a full runtime. Generic Yosys synthesis is not physical timing, area, power, or performance-per-watt evidence.
+
+## Evidence
+
+- Specification: `docs/12_double_buffered_tile_loading.md`
+- Test: `tb/tb_tito_systolic_double_buffered_dma_reader.v`
+- CI: [repository Actions history](https://github.com/chomskyintech/TitoGPU/actions).
