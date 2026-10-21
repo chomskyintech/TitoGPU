@@ -110,3 +110,16 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Generic synthesis of both the standalone MAC and scheduler wrapper: **PASS** in CI.
 - Logs/artifacts: [GitHub Actions run #39532346291](https://github.com/chomskyintech/TitoGPU/actions/runs/39532346291)
 - Limitations: matrices are supplied as wide preloaded input ports; there is no local SRAM, DMA, reusable tile command queue, backpressure, quantization/scaling, or CNN/transformer benchmark yet. Generic synthesis is not a physical PPA result.
+
+
+## 2026-10-21 — Scratchpad-to-systolic accelerator integration passes
+
+- Tested commit: `f1de917ddbe24b491f01e1bd03b8b9afc4251bfa`
+- Tool and version: Icarus Verilog 12.0; Yosys 0.33
+- Added `rtl/tito_systolic_scratchpad.v`: separate row-major A and B banks with a single write port.
+- Added `rtl/tito_systolic_accelerator.v`: integrates the scratchpad, feed scheduler, and systolic MAC array.
+- Integration test: **PASS — all 16 signed N=4 matrix-multiply outputs** checked against an integer reference after loading both banks through the write port.
+- Full simulation regression: **PASS**, including the CGRA tests, standalone N=2 MAC, N=4 reference-model MAC tests, scheduler test, and scratchpad integration test.
+- Generic synthesis: **PASS** for the standalone MAC, scheduler wrapper, scratchpad-integrated accelerator, and existing CGRA.
+- Logs/artifacts: [GitHub Actions run #39532514287](https://github.com/chomskyintech/TitoGPU/actions/runs/39532514287)
+- Limitations: the scratchpad is behavioral RTL and may synthesize to registers; it is not a compiled SRAM macro. The wrapper is a prototype and is not integrated with TitoRV, DMA, host command/control, or a software runtime. No physical PPA or CNN/transformer benchmark has been measured.
