@@ -145,3 +145,16 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Updated `Makefile`: command-wrapper simulation added to `make sim`; generic synthesis added to `make synth`.
 - CI status: pending verification of this milestone. Do not mark it passed until the new end-to-end test and generic synthesis complete successfully.
 - Limitations: host interface is plain RTL signals, not a standard memory-mapped bus. Result bank is a behavioral register array, not SRAM. No DMA, multi-tile tiling, quantization, CNN/transformer benchmarks, or physical PPA yet.
+
+## 2026-10-21 — Command-interface regression and signed INT8 endpoints pass
+
+- Branch: `feature/tito-systolic-mac`
+- Tested commit: `353b709f50935cea812334b8b1b153d2dda1ae7f`
+- Tool versions: Icarus Verilog and Yosys versions are recorded by the workflow; the established environment is Icarus Verilog 12.0 and Yosys 0.33.
+- Commands: `make sim`; `make synth` via GitHub Actions.
+- Result: **PASS** — workflow run #74 completed successfully, including the full simulation target and generic synthesis.
+- New arithmetic test: signed INT8 endpoint operands (-128 and 127) in the N=2 systolic MAC test; expected signed results are checked after 32-bit accumulation.
+- Existing command-wrapper regression includes matrix load, command start, ignored writes and start pulses while busy, result writeback/readback, reset interruption, and restart recovery.
+- Logs: [GitHub Actions run #74](https://github.com/chomskyintech/TitoGPU/actions/runs/39535645810); [tested commit](https://github.com/chomskyintech/TitoGPU/commit/353b709f50935cea812334b8b1b153d2dda1ae7f).
+- Limitations: this is functional simulation plus generic synthesis, not formal proof, technology-specific area/timing/power, or a CNN/transformer benchmark. The banked memories are RTL register-array models, not compiled SRAM macros.
+- Next milestone: specify and verify K-dimension tiling, including accumulation across multiple K tiles, output accumulation/reset semantics, boundary conditions, and an independent reference-model test before adding DMA.
