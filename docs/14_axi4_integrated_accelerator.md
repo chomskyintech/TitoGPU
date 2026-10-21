@@ -36,7 +36,7 @@ The [RTL regression workflow](https://github.com/chomskyintech/TitoGPU/actions/w
 
 ## Next milestone
 
-AXI writeback remains separate and should start only after this read-path milestone is stable. Follow the [AXI writeback design contract](15_axi4_writeback_design_contract.md) when starting that work.
+The standalone [AXI write controller](../rtl/tito_systolic_axi4_write_adapter.v) and [synchronous result-stream adapter](../rtl/tito_systolic_axi4_result_writeback.v) now have unit regressions and generic synthesis coverage. They are not yet connected to this top-level wrapper. The next step is to add explicit arbitration between host result reads and writeback reads, expose the AW/W/B ports and writeback command/status, and verify that actual computed results reach external memory. Follow the [AXI writeback contract](15_axi4_writeback_design_contract.md) and [result-stream adapter design](17_axi4_result_stream_adapter.md).
 
 ## Limitations
 
