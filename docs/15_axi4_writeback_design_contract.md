@@ -2,7 +2,7 @@
 
 ## Status
 
-The single-burst controller and synchronous result-stream adapter are implemented in `rtl/tito_systolic_axi4_write_adapter.v` and `rtl/tito_systolic_axi4_result_writeback.v`, and are now integrated into the main wrapper. The full simulation suite and generic Yosys synthesis passed in [RTL regression run 39542794145](https://github.com/chomskyintech/TitoGPU/actions/runs/39542794145). The integrated test runs a two-tile matrix operation, checks all 16 outputs, writes those actual result-memory words through AXI, and compares external memory byte-for-byte with the independent reference.
+The restricted write controller and synchronous result-stream adapter are implemented in `rtl/tito_systolic_axi4_write_adapter.v` and `rtl/tito_systolic_axi4_result_writeback.v`, and are now integrated into the main wrapper. The integrated writeback regression and generic Yosys synthesis passed in [RTL regression run 39542794145](https://github.com/chomskyintech/TitoGPU/actions/runs/39542794145). Legal burst splitting at a 4-KiB boundary was added and verified in [RTL regression run 39544784310](https://github.com/chomskyintech/TitoGPU/actions/runs/39544784310): a 256-beat stream beginning at `0x0F00` is emitted as 64 beats at `0x0F00` and 192 beats at `0x1000`, with `WLAST` on each burst's final beat.
 
 ## Goal
 
@@ -31,17 +31,17 @@ The wrapper must not silently assume the result producer can be stalled unless t
 7. `WLAST` is asserted on exactly the final accepted beat of the burst.
 8. Do not assert `BREADY` as evidence that a write has completed. A write completes only after the B-channel handshake.
 9. A non-OKAY `BRESP` sets a sticky error and prevents a false success indication.
-10. No retries, timeout, cancellation/abort, ID interleaving, cache coherence, or 4-KiB burst splitting in the first milestone. The controller must reject a command that would cross a 4-KiB boundary rather than issue an illegal burst.
+10. No retries, timeout, cancellation/abort, ID interleaving, or cache coherence. A single command is limited to 256 total beats, but its output may cross a 4-KiB boundary because the controller splits it into legal bursts.
 
 ## Address and burst rules
 
 For bus width `DATA_W`, bytes per beat are `DATA_W / 8`. A command provides a byte base address and a beat count. Each burst transfers at most `MAX_BURST_BEATS` beats and must remain within one 4-KiB region. After a successful burst response, advance the address by the number of transferred beats multiplied by bytes per beat. Do not advance on an error response.
 
-The first implementation should either reject unsupported unaligned base addresses and boundary-crossing commands before asserting `AWVALID`, or split a transfer into legal bursts. Prefer explicit rejection for the initial testable milestone; implement splitting as a later enhancement.
+Unaligned base addresses are rejected before asserting `AWVALID`. The controller chooses each burst length as the minimum of the remaining command beats, 256 beats, and the number of full-width beats remaining before the next 4-KiB boundary. It waits for that burst's B response before issuing the next burst.
 
 ## Implemented interface details
 
-The current module drives fixed `AWID=0` and uses `cmd_valid/cmd_ready`, a `cmd_addr` byte address, and `cmd_beats` count. The result stream is one full-width bus beat per handshake (`stream_valid/stream_ready`, `stream_data`, `stream_last`). The default bus is 32 bits, so every stream item is one 32-bit write beat and `WSTRB=4'b1111`. The controller accepts one burst only, emits `AWLEN=cmd_beats-1`, and raises `done` only after an OKAY B-channel handshake. Error codes currently distinguish zero length, unaligned address, over-256 beat count, 4-KiB crossing, stream-last mismatch, and non-OKAY BRESP. A stream-last mismatch is fatal and requires reset/system quiescence because an AW handshake may already have occurred.
+The current module drives fixed `AWID=0` and uses `cmd_valid/cmd_ready`, a `cmd_addr` byte address, and `cmd_beats` count. The result stream is one full-width bus beat per handshake (`stream_valid/stream_ready`, `stream_data`, `stream_last`). The default bus is 32 bits, so every stream item is one 32-bit write beat and `WSTRB=4'b1111`. The controller accepts one command of up to 256 beats and may issue multiple sequential bursts. Each `AWLEN` is the selected burst beat count minus one; the address advances only after an OKAY B response. Error codes distinguish zero length, unaligned address, over-256 total beat count, stream-last mismatch, and non-OKAY BRESP. A stream-last mismatch is fatal and requires reset/system quiescence because an AW handshake may already have occurred.
 
 The controller unit regression verifies the listed channel and command cases. The result-stream adapter regression checks the synchronous result port and the integrated top-level regression verifies actual computed output writeback plus host-read/writeback arbitration. These are RTL simulation tests; they do not test a real AXI interconnect or physical PPA.
 
@@ -54,7 +54,7 @@ The controller unit regression verifies the listed channel and command cases. Th
 - B-channel backpressure and delayed responses.
 - OKAY response produces done only after the response handshake.
 - SLVERR/DECERR produces sticky error and no done-success indication.
-- Zero-length, unaligned, over-limit, and 4-KiB-crossing commands are rejected according to the chosen command contract.
+- Zero-length, unaligned, and over-256-beat commands are rejected; a transfer crossing 4 KiB is split, and each burst's AW address/length and WLAST placement are checked.
 - Reset while idle and reset during a transaction; document that reset abandons the in-flight transaction and requires system-level quiescence.
 - End-to-end matrix result writeback compared byte-for-byte against an independent reference, once the result interface has a defined handshake.
 
