@@ -159,7 +159,7 @@ module tb_cgra_pe;
 
         check_op(OP_ADD, 32'd20, 32'd22, 32'd42);
 
-        // Deterministic pseudo-random differential checks against the reference model.
+        // Deterministic pseudo-random differential checks against the reference model (fixed seed).
         for (i = 0; i < 200; i = i + 1) begin
             random_op = (i % 12) + 1;
             random_a = $random(seed);
