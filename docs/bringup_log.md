@@ -47,3 +47,16 @@ Append entries; do not overwrite failed runs. Use one entry per meaningful run.
 - Result:
 - Logs/artifacts:
 - Limitations or follow-up:
+
+## 2026-10-21 — CGRA PE and controller regression passes
+
+- Tested commit: `581bf5579615f5c3b9e5268d21a59fd50fa7a075`
+- Tool and version: Icarus Verilog 12.0; Yosys 0.33
+- Commands: `make sim`; `make synth`
+- PE unit tests: **PASS — 25 checks**, covering arithmetic, signed INT8 multiply corner cases, logic, signed min/max, shifts, pass-through, NOP/unsupported opcode hold, disabled execution, and clear.
+- Controller tests: **PASS — 5 checks and 3 completion pulses**, covering zero-cycle clamp to one, one-cycle `done`, multi-cycle run, ignored configuration writes while busy, ignored start while busy, and successful relaunch.
+- Existing CGRA integration smoke tests: **PASS** — dot products 20 and 100.
+- Result: **Simulation pass; generic synthesis pass**.
+- Logs/artifacts: [GitHub Actions run #39528239704](https://github.com/chomskyintech/TitoGPU/actions/runs/39528239704)
+- Synthesis notes: Yosys reports 19,673 generic mapped cells. This is not technology-specific area, timing, or power.
+- Limitations/follow-up: Icarus still warns about missing explicit time units/precision in RTL modules. The controller regression is directed, not exhaustive or formal verification. Add a reproducible reference-model regression and reset/configuration edge cases before making architectural claims.
