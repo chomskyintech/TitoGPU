@@ -130,7 +130,50 @@ module tb_tito_systolic_k_tiling;
         end
         @(negedge clk);
         result_rd_en=0;
-        $display("PASS: K-dimension tiling K_TOTAL=%0d across 3 local tiles (%0d outputs)",
+
+        // Repeat the identical matrix operation without resetting result_mem.
+        // The first tile must replace prior results; otherwise this second pass
+        // would double the previously completed output matrix.
+        for (tile=0; tile<3; tile=tile+1) begin
+            for (i=0; i<N; i=i+1) begin
+                for (k=0; k<K_TILE; k=k+1) begin
+                    @(negedge clk);
+                    global_k = tile*K_TILE + k;
+                    value_a = (global_k < K_TOTAL) ? a_value(i,global_k) : 0;
+                    mem_wr_en=1; mem_wr_bank=0; mem_wr_addr=i*K_TILE+k;
+                    mem_wr_data=value_a;
+                end
+            end
+            for (k=0; k<K_TILE; k=k+1) begin
+                for (j=0; j<N; j=j+1) begin
+                    @(negedge clk);
+                    global_k = tile*K_TILE + k;
+                    value_b = (global_k < K_TOTAL) ? b_value(global_k,j) : 0;
+                    mem_wr_en=1; mem_wr_bank=1; mem_wr_addr=k*N+j;
+                    mem_wr_data=value_b;
+                end
+            end
+            @(negedge clk);
+            mem_wr_en=0; mem_wr_addr=0; mem_wr_data=0;
+            run_command(tile != 0);
+        end
+
+        for (i=0; i<N; i=i+1) begin
+            for (j=0; j<N; j=j+1) begin
+                @(negedge clk);
+                result_rd_en=1; result_rd_addr=i*N+j;
+                @(negedge clk);
+                if (!result_rd_valid || $signed(result_rd_data) !== expected[i][j]) begin
+                    $display("FAIL repeated K-tiled result[%0d,%0d]: got %0d expected %0d",
+                        i,j,$signed(result_rd_data),expected[i][j]);
+                    $fatal(1);
+                end
+                checks=checks+1;
+            end
+        end
+        @(negedge clk);
+        result_rd_en=0;
+        $display("PASS: K-dimension tiling K_TOTAL=%0d across 3 tiles, repeated operation, %0d output checks",
             K_TOTAL, checks);
         $finish;
     end
