@@ -81,6 +81,18 @@ module tb_tito_systolic_command_accelerator;
             $fatal(1);
         end
 
+        // While the command is in flight, try to corrupt A[0] and issue
+        // another start pulse. Both requests must be ignored while busy.
+        @(negedge clk);
+        mem_wr_en=1; mem_wr_bank=0; mem_wr_addr=0;
+        mem_wr_data=8'd127; cmd_start=1;
+        @(negedge clk);
+        mem_wr_en=0; cmd_start=0;
+        if (!busy) begin
+            $display("FAIL: busy dropped after an ignored start pulse");
+            $fatal(1);
+        end
+
         cycles=0;
         while (!done && cycles < 300) begin
             @(negedge clk);
