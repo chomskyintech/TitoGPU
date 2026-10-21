@@ -33,9 +33,9 @@ The current controller fixes AWID to zero; the write address ID is exposed expli
 - `AWLEN=beats-1`, so three beats means `AWLEN=2`.
 - `AWBURST=INCR` for sequential addresses.
 - `WSTRB=4'b1111` because this first version supports full-width beats only.
-- `WLAST` is asserted for the final accepted beat of the command.
+- `WLAST` is asserted for the final accepted beat of each AXI burst; logical `stream_last` is asserted only on the command's final word.
 
-The initial controller rejects zero-length commands, unaligned addresses, more than 256 beats, and transfers crossing a 4-KiB boundary. It does not split a long transfer into multiple bursts.
+The controller rejects zero-length commands, unaligned addresses, and commands longer than 256 beats. It splits a command at a 4-KiB boundary. For example, a 256-beat command starting at `0x0F00` becomes a 64-beat burst at `0x0F00` followed by a 192-beat burst at `0x1000`.
 
 ## Run and inspect
 
@@ -61,7 +61,7 @@ The CI run for the controller milestone passed both the full `make sim` suite an
 2. If AWREADY is low for five cycles, which AW signals must remain stable?
 3. If WREADY drops after the second beat, which signals must remain stable, and should the stream producer be allowed to overwrite the buffered word?
 4. Why is it legal for BREADY to be high before BVALID, and why must done remain low until the B handshake?
-5. Why does a command starting at `0xFFC` with two 32-bit beats need rejection in this version?
+5. A command starts at `0xFFC` with two 32-bit beats. What AW address and AWLEN should be issued for each burst?
 6. Explain why this controller cannot yet be connected directly to the existing result read port.
 
 ## Review answers
@@ -70,11 +70,11 @@ The CI run for the controller milestone passed both the full `make sim` suite an
 2. AWADDR, AWLEN, AWSIZE, AWBURST and AWVALID must remain stable until the handshake.
 3. WDATA, WSTRB, WLAST and WVALID remain stable. The stream producer must not replace the buffered word until the controller accepts it.
 4. BREADY indicates the receiver can accept a response. Completion occurs only when BVALID and BREADY are both high, and a successful completion additionally requires OKAY BRESP.
-5. The first burst must stop at the boundary: one beat at `0xFFC` with AWLEN 0, then one beat at `0x1000` with AWLEN 0.
+5. The controller splits it into two single-beat bursts: AWADDR `0xFFC`/AWLEN 0, then AWADDR `0x1000`/AWLEN 0.
 6. The current result interface is a read port without an explicit stream-ready handshake. A separate result-stream adapter must sequence addresses/data and handle synchronous read latency before integration.
 
 ## Exit criteria and limitations
 
 You can trace the AW/W/B lifecycle, explain all backpressure guarantees, calculate burst fields, and distinguish protocol completion from data-channel completion. The module is a restricted single-outstanding-burst-at-a-time prototype—not a complete AXI4 master. A single command can contain up to 256 beats and may be split into multiple bursts at 4-KiB boundaries. It has no retries, timeouts, abort protocol, partial final beats, multiple outstanding IDs, or cache coherence. Generic synthesis is not physical timing, area, power, or performance-per-watt evidence.
 
-**Related lessons:** [Lesson 12 — synchronous result streaming](12-result-stream-writeback.md), [Lesson 13 — integrated AXI writeback](13-integrated-axi-writeback.md), and [Lesson 14 — legal AXI burst splitting](14-axi4-burst-splitting.md).
+**Related lessons:** [Lesson 12 — synchronous result streaming](12-result-stream-writeback.md), [Lesson 13 — integrated AXI writeback](13-integrated-axi-writeback.md), [Lesson 14 — legal AXI burst splitting](14-axi4-burst-splitting.md), and [Lesson 15 — B-response fault injection](15-axi4-bresp-fault-injection.md).
