@@ -4,18 +4,18 @@ TitoGPU is an experimental, verification-led inference accelerator project. The 
 
 ## Current architecture stage
 
-**Stage: systolic MAC prototype, streaming burst ingress, and an autonomous multi-tile sequencer under regression.**
+**Stage: systolic MAC prototype, autonomous K-tile sequencing, and a generic external-memory read frontend under regression.**
 
 The repository contains two parallel compute paths:
 
 - **Original CGRA baseline:** four processing elements, signed INT8 multiplication, 32-bit reduction operations, registered inter-PE routing, and up to eight execution contexts.
-- **Systolic matrix prototype:** parameterized MAC array, banked A/B scratchpad model, feed/drain controller, command wrapper, result-memory writeback, a ready/valid burst loader for local tile data, and an operation sequencer that launches compute after each A/B tile pair is loaded.
+- **Systolic matrix prototype:** parameterized MAC array, banked A/B scratchpad model, feed/drain controller, command wrapper, result-memory writeback, ready/valid burst ingress, autonomous K-tile sequencer, and a generic external-memory read frontend.
 
-The systolic path supports a local `K=4` tile. Larger reductions are currently handled by the host issuing multiple tile commands: the first tile replaces result memory and subsequent tiles add their partial sums. A regression covers `K_TOTAL=9`, three local tiles, final-tile zero padding, and repeating the same operation to detect stale results.
+The systolic path currently computes a physical K=4 tile. Larger reductions are split into multiple tiles. The sequencer automatically launches compute after each A/B tile pair is loaded, replaces result memory for tile zero, and accumulates later tiles. A regression covers K_TOTAL=9 across three tiles, final-tile zero padding, and repeated operations to detect stale results.
 
-The burst wrapper accepts a descriptor (bank, base address, length) and then a ready/valid stream of data beats. It automatically increments the local scratchpad address and rejects invalid ranges. The new tiled sequencer accepts an operation tile count, automatically launches compute after both A and B bursts finish, replaces results on tile zero, and accumulates later tiles. It still relies on the host or a future DMA backend to supply each tile. **It is not a complete DMA engine:** it does not read external memory, generate AXI bursts, or double-buffer tiles.
+The DMA reader prototype requests one A and one B tile per reduction tile from a word-addressed memory interface. It handles one outstanding request, response backpressure, and final-beat checking. It is a **generic read frontend, not an AXI master or production DMA engine**: there is no bus-specific transaction adapter, burst splitting, cache, outstanding IDs, double buffering, or transfer/compute overlap.
 
-This remains prototype RTL, not a production GPU or a completed SoC integration. Generic Yosys synthesis is a structural sanity check; it is not technology-mapped area, timing closure, power, or performance-per-watt evidence.
+This remains prototype RTL, not a production GPU or completed SoC integration. Generic Yosys synthesis is a structural sanity check; it is not technology-mapped area, timing closure, power, or performance-per-watt evidence.
 
 ## Main RTL and tests
 
@@ -27,9 +27,13 @@ This remains prototype RTL, not a production GPU or a completed SoC integration.
 - [Banked A/B scratchpad](rtl/tito_systolic_banked_scratchpad.v)
 - [Streaming systolic controller](rtl/tito_systolic_stream_accelerator.v)
 - [Command interface and result writeback](rtl/tito_systolic_command_accelerator.v)
-- [Streaming burst command wrapper](rtl/tito_systolic_burst_command_accelerator.v)\n- [Autonomous K-tile burst sequencer](rtl/tito_systolic_tiled_burst_accelerator.v)
+- [Streaming burst command wrapper](rtl/tito_systolic_burst_command_accelerator.v)
+- [Autonomous K-tile burst sequencer](rtl/tito_systolic_tiled_burst_accelerator.v)
+- [External-memory read frontend](rtl/tito_systolic_dma_reader.v)
 - [K-dimension tiling test](tb/tb_tito_systolic_k_tiling.v)
-- [Burst loader end-to-end test](tb/tb_tito_systolic_burst_command_accelerator.v)\n- [Autonomous two-tile test](tb/tb_tito_systolic_tiled_burst_accelerator.v)
+- [Burst loader end-to-end test](tb/tb_tito_systolic_burst_command_accelerator.v)
+- [Autonomous two-tile test](tb/tb_tito_systolic_tiled_burst_accelerator.v)
+- [DMA read frontend test](tb/tb_tito_systolic_dma_reader.v)
 - [Makefile regression and synthesis targets](Makefile)
 
 ## Documentation and learning path
@@ -40,14 +44,18 @@ This remains prototype RTL, not a production GPU or a completed SoC integration.
 - [Verification plan](docs/06_verification_plan.md)
 - [Systolic MAC prototype](docs/07_tito_systolic_mac_prototype.md)
 - [K-dimension tiling specification](docs/08_k_dimension_tiling.md)
-- [Streaming burst loader specification](docs/09_streaming_burst_loader.md)\n- [Autonomous K-tile sequencer specification](docs/10_autonomous_k_tile_burst_sequencer.md)
+- [Streaming burst loader specification](docs/09_streaming_burst_loader.md)
+- [Autonomous K-tile sequencer specification](docs/10_autonomous_k_tile_burst_sequencer.md)
+- [External-memory read frontend specification](docs/11_external_memory_read_frontend.md)
 - [Decision log](docs/10_decisions_and_tradeoffs.md)
 - [Bring-up and CI log](docs/bringup_log.md)
 - [Hands-on learning guide index](docs/learning/README.md)
 - [Lesson 01: Command interface, Git, and CI](docs/learning/01-command-interface-git-ci.md)
 - [Lesson 02: K-dimension tiling](docs/learning/02-k-dimension-tiling.md)
 - [Lesson 03: Ready/valid handshakes](docs/learning/03-ready-valid-handshake.md)
-- [Lesson 04: Streaming bursts and backpressure](docs/learning/04-streaming-bursts.md)\n- [Lesson 05: Autonomous K-tile sequencing](docs/learning/05-autonomous-k-tile-sequencing.md)
+- [Lesson 04: Streaming bursts and backpressure](docs/learning/04-streaming-bursts.md)
+- [Lesson 05: Autonomous K-tile sequencing](docs/learning/05-autonomous-k-tile-sequencing.md)
+- [Lesson 06: External-memory read frontend](docs/learning/06-external-memory-read-frontend.md)
 
 ## Run locally
 
@@ -58,7 +66,7 @@ make sim
 make synth
 ```
 
-The simulation target runs the CGRA and systolic regressions, including command-interface checks, host-driven K-tile accumulation, burst loading, and autonomous multi-tile sequencing. Check the [GitHub Actions workflow](https://github.com/chomskyintech/TitoGPU/actions) for the result of the exact commit you are using.
+The simulation target runs the CGRA and systolic regressions, including command-interface checks, K-tile accumulation, burst loading, autonomous sequencing, and the external-memory read frontend. Check the [GitHub Actions workflow](https://github.com/chomskyintech/TitoGPU/actions) for the result of the exact commit you are using.
 
 ## Development principles
 
