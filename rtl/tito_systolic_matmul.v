@@ -30,7 +30,6 @@ module tito_systolic_matmul #(
 
     reg [N-1:0] a_valid;
     reg [N-1:0] b_valid;
-    reg [N*K*DATA_W-1:0] unused_a_shape_guard;
     reg [N*DATA_W-1:0] a_in;
     reg [N*DATA_W-1:0] b_in;
     reg clear_mac;
