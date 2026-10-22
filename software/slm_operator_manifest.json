@@ -34,10 +34,10 @@
     "reference_dtype": "python_float",
     "candidate_linear_weight_dtype": "signed_int8",
     "candidate_linear_accumulator_dtype": "signed_int32",
-    "quantization": "not_defined_yet",
-    "rounding": "not_defined_yet",
-    "saturation": "not_defined_yet",
-    "comparison_tolerance": "not_defined_yet"
+    "quantization": "symmetric_per_output_channel_weights; per_tensor_activations_with_explicit_scale",
+    "rounding": "round_to_nearest_ties_to_even",
+    "saturation": "activations_signed_int8_-128_to_127; weights_signed_int8_-127_to_127",
+    "comparison_tolerance": "to_be_set_after_golden_quantized_layer_comparisons"
   },
   "operators": [
     {"name":"token_embedding","kind":"embedding_lookup","input_shapes":[["T"]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
