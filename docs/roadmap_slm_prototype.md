@@ -5,6 +5,8 @@
 **Working branch:** `feature/tito-systolic-mac`  
 **Last reviewed:** 2026-10-22
 
+**Current workload specification:** [Tiny Transformer Workload Specification](20_tiny_transformer_workload.md)
+
 This document is the source of truth for the SLM prototype direction. When resuming work in a new chat, read this file and the current repository state before proposing or making changes. Update this roadmap when a milestone or agreed direction changes; do not silently replace the target.
 
 ## Product goal
@@ -128,8 +130,8 @@ Update this table only with evidence from the repository and verified runs.
 
 | Milestone | Status | Evidence / next action |
 |---|---|---|
-| M0 — Current baseline | Not yet audited against this SLM roadmap | Inspect current branch, run regression/CI, record gaps |
-| M1 — Tiny transformer specification/reference | Not started | Choose and document the fixed model and operator inventory |
+| M0 — Current baseline | In progress — latest checked RTL regression and configured synthesis jobs passed before the documentation-only workload-spec commits; coverage audit underway | CI run #371 on commit `28ce8ce85ced4d86410018e1f10cc8cbda4f6c61`; review remaining shape/protocol gaps and check CI for the current head |
+| M1 — Tiny transformer specification/reference | In progress — initial workload spec written; software reference not implemented yet | See [workload specification](20_tiny_transformer_workload.md); implement deterministic reference and manifest |
 | M2 — Linear layers on TitoGPU | Not started | Map tensor layouts and compare results against reference |
 | M3 — Complete transformer layer | Not started | Add missing operators and intermediate comparisons |
 | M4 — End-to-end token generation | Not started | KV cache, embeddings, logits and deterministic decoding |
