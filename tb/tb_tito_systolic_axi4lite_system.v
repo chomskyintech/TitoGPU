@@ -93,8 +93,8 @@ module tb_tito_systolic_axi4lite_system;
     if(rlast_q) begin rd_active<=0; rvalid_m_q<=0; end
     else begin
      rd_index<=rd_index+1'b1;
-     rdata_m_q<={mem[rd_base+(rd_index+1'b1)*4+3],mem[rd_base+(rd_index+1'b1)*4+2],mem[rd_base+(rd_index+1'b1)*4+1],mem[rd_base+(rd_index+1'b1)*4]};
-     rid_q<=0; rresp_m_q<=0; rlast_q<=((rd_index+1'b1)==rd_len); rvalid_m_q<=1;
+     r_gap_count<=mem_gap;
+     rvalid_m_q<=0;
     end
    end else if(rd_active && !rvalid_m_q && r_gap_count>0) begin
     r_gap_count<=r_gap_count-1;
