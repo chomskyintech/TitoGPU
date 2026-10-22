@@ -65,6 +65,20 @@ module tb_tito_systolic_axi4lite_system;
     internal_op_started=1;
     compute_ar_handshakes=0; compute_r_beats=0; compute_r_gap_idle=0; compute_r_stalls=0;
     compute_core_busy_cycles=0; compute_noncore_busy_cycles=0;
+    $display("TRACE-START: cycle=%0d reader_state=%0d",bus_cycle,dut.accel.frontend.state);
+   end
+   // Trace the scheduling boundary: external read bursts, local buffer-load
+   // completion, compute start/done, and the reader's transition to next tile.
+   // These are testbench-only observations, not hardware debug outputs.
+   if(internal_op_started && dut.op_busy) begin
+    if(arvalid_m && arready_m_q)
+     $display("TRACE-AR: cycle=%0d addr=%h len=%0d reader_state=%0d tile_index=%0d",bus_cycle,araddr_m,arlen,dut.accel.frontend.state,dut.accel.frontend.tile_index);
+    if(rvalid_m_q && rready_m && rlast_q)
+     $display("TRACE-RLAST: cycle=%0d addr=%h reader_state=%0d tile_index=%0d tiled_state=%0d load_index=%0d compute_index=%0d",bus_cycle,rd_base,dut.accel.frontend.state,dut.accel.frontend.tile_index,dut.accel.frontend.tiled_core.state,dut.accel.frontend.tiled_core.load_index,dut.accel.frontend.tiled_core.compute_index);
+    if(dut.accel.frontend.tiled_core.cmd_start)
+     $display("TRACE-COMPUTE-START: cycle=%0d tile=%0d buffer=%0d tiled_state=%0d",bus_cycle,dut.accel.frontend.tiled_core.compute_index,dut.accel.frontend.tiled_core.cmd_buffer_q,dut.accel.frontend.tiled_core.state);
+    if(dut.accel.frontend.tiled_core.core_done)
+     $display("TRACE-COMPUTE-DONE: cycle=%0d tile=%0d load_index=%0d a_loaded=%b b_loaded=%b next_ready=%b",bus_cycle,dut.accel.frontend.tiled_core.compute_index,dut.accel.frontend.tiled_core.load_index,dut.accel.frontend.tiled_core.a_loaded,dut.accel.frontend.tiled_core.b_loaded,dut.accel.frontend.tiled_core.next_ready_q);
    end
    if(dut.op_busy) begin
     if(dut.accel.frontend.tiled_core.burst_core.command_core.compute_core.busy) begin
