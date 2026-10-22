@@ -159,3 +159,20 @@ Trace markers emitted by the system testbench:
 - `TRACE-COMPUTE-START` / `TRACE-COMPUTE-DONE`: tile compute boundaries.
 
 The trace is simulation-only instrumentation; it does not change synthesizable RTL behavior. The RTL regression and synthesis checks passed in [CI run 39837889253](https://github.com/chomskyintech/TitoGPU/actions/runs/39837889253). The next design step should investigate whether the six-cycle launch hand-off is required by the current state/flag update sequence, then compare any change against all three memory-gap settings and the full regression.
+
+
+## Packed-ingress implementation comparison
+
+The opt-in packed-ingress path is now connected end-to-end from the AXI read adapter through the DMA reader, tiled burst controller, command wrapper, and scratchpad. The default remains the byte-stream path (`PACKED_INGRESS=0`), so the reference implementation is retained. The full-system testbench is compiled a second time with `PACKED_INGRESS=1` and run at the same memory gaps.
+
+Results from [passing packed-ingress RTL regression and synthesis run](https://github.com/chomskyintech/TitoGPU/actions/runs/39851285393):
+
+| AXI R-channel inter-beat gap | Byte-stream internal op latency | Packed internal op latency | Internal cycles saved | Byte-stream command-to-status | Packed command-to-status | Command-to-status cycles saved |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 cycles | 140 | 100 | 40 | 147 | 105 | 42 |
+| 2 cycles | 140 | 116 | 24 | 147 | 123 | 24 |
+| 5 cycles | 164 | 152 | 12 | 171 | 159 | 12 |
+
+The MAC core remains busy for 32 cycles in both modes. The number of accepted physical AXI R beats remains 16 for the four input bursts; packed ingress reduces local data-drain and write-handshake cycles rather than reducing external traffic. Writeback command-to-status remains 60 cycles in every case because this optimization affects input ingress only.
+
+These are simulation cycle-count improvements for the current register-array scratchpad model and deterministic testbench memory. They are **not** claims about silicon frequency, physical area, power, or final PPA. The packed path is enabled explicitly by setting `PACKED_INGRESS=1`; all byte-stream and packed-mode tests, including protocol error tests, must continue to pass.
