@@ -93,7 +93,15 @@ These counters help distinguish memory input service from output writeback activ
 | 2 cycles | 4 | 16 | 24 | 12 | 1 | 16 | 1 | 4 | 32 |
 | 5 cycles | 4 | 16 | 60 | 0 | 1 | 16 | 1 | 3 | 32 |
 
-The same regression also counts core-busy cycles versus operation-busy cycles when the local core is idle. That additional counter was added after this run; record its numbers only after the newest CI regression passes.
+The passing regression [39830875807](https://github.com/chomskyintech/TitoGPU/actions/runs/39830875807) also measures local core activity during the operation:
+
+| R-channel gap | Internal operation latency | Core-busy cycles | Operation-busy/core-idle cycles |
+|---:|---:|---:|---:|
+| 0 cycles | 140 | 137 | 2 |
+| 2 cycles | 140 | 137 | 2 |
+| 5 cycles | 164 | 161 | 2 |
+
+The monitor samples the local tiled-core `local_op_busy` signal while the outer operation is busy. The two-cycle difference between internal operation latency and the sum of the reported core-busy/idle counts reflects measurement-boundary and sampling-cycle conventions; do not assume these counters must sum exactly to the latency number. The main visible effect at gap 5 is 24 extra operation/core-busy cycles, while the local core-idle count stays at two.
 
 ## Interpretation
 
