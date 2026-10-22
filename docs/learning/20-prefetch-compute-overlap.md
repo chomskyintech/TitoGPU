@@ -10,6 +10,7 @@ Use phase-level simulation counters and the RTL state machines to determine whet
 - [Software-facing AXI-Lite system testbench](../../tb/tb_tito_systolic_axi4lite_system.v) — counts accepted R beats and read-active cycles while the actual MAC core is busy.
 - [DMA reader RTL](../../rtl/tito_systolic_double_buffered_dma_reader.v) — issues A and B read bursts and advances between K tiles.
 - [Tiled burst controller RTL](../../rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v) — owns ping-pong buffer readiness and decides when the next tile can compute.
+- [Packed ingress optimization design note](../22_packed_ingress_optimization_design.md) — candidate architecture and verification plan based on the new cycle traces.
 - [AXI4 read-width contract](../16_axi4_32bit_read_width_contract.md) — explains the packed INT8/32-bit memory interface.
 - [Successful overlap-instrumented CI run](https://github.com/chomskyintech/TitoGPU/actions/runs/39833596759) — simulation and synthesis regression.
 
