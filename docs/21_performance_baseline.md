@@ -58,7 +58,7 @@ These include AXI-Lite command/response and polling overhead as well as accelera
 | 2 cycles | 147 cycles | 60 cycles |
 | 5 cycles | 171 cycles | 60 cycles |
 
-The simulation-only hierarchical monitor also records internal `dut.op_start` to `dut.op_done` latency. This boundary measures the accelerator operation interval and excludes the later AXI-Lite status polling, although the interval still depends on the configured memory model. The latest passing regression [CI run 39823198333](https://github.com/chomskyintech/TitoGPU/actions/runs/39823198333) measured:
+The simulation-only hierarchical monitor also records internal `dut.op_start` to `dut.op_done` latency. This boundary measures the accelerator operation interval and excludes the later AXI-Lite status polling, although the interval still depends on the configured memory model. The latest passing regression [CI run 39831468187](https://github.com/chomskyintech/TitoGPU/actions/runs/39831468187) measured:
 
 | AXI R-channel inter-beat gap | Internal `op_start` → `op_done` | Compute command-to-status | Difference (command-to-status minus internal) | Writeback command-to-status |
 |---:|---:|---:|---:|---:|
@@ -68,7 +68,7 @@ The simulation-only hierarchical monitor also records internal `dut.op_start` to
 
 For this testbench, the compute command-to-status measurement is consistently 7 cycles longer than the internal operation interval. Treat that as an observation about this exact testbench and measurement boundary, not a universal AXI-Lite overhead. The writeback path does not issue input reads in this test, so its latency is unchanged by this R-channel input-response gap. The compute latency remains flat between gaps 0 and 2, then increases by 24 cycles at gap 5. This indicates the current two-tile workload hides the smaller response gap within other work, but the larger gap becomes visible. These are software-observed latencies, not standalone accelerator compute time, and must not be mixed with the lower-level DMA-reader operation-cycle counts above.
 
-The testbench also prints aggregate AXI stall counters after the end-to-end and error-path checks. In the passing run [39817798604](https://github.com/chomskyintech/TitoGPU/actions/runs/39817798604), the counts were:
+The testbench also prints aggregate AXI stall counters after the end-to-end and error-path checks. In the corrected passing run [39831468187](https://github.com/chomskyintech/TitoGPU/actions/runs/39831468187), the counts were:
 
 | R-channel inter-beat gap | AW stalled cycles | W stalled cycles | AR stalled cycles | R stalled cycles | B stalled cycles | R-response-gap idle cycles |
 |---:|---:|---:|---:|---:|---:|---:|
@@ -85,7 +85,7 @@ The top-level testbench now scopes additional simulation counters to each operat
 - **Compute phase:** accepted AXI AR addresses, accepted R beats, R-channel response-gap idle cycles, and R-channel stalls while the compute operation is busy.
 - **Writeback phase:** accepted AW addresses, accepted W beats, accepted B responses, W-channel stalls, and cycles with no active AW/W/B channel.
 
-These counters help distinguish memory input service from output writeback activity. They are testbench instrumentation, not synthesizable registers. The writeback idle-cycle counter is only a coarse no-channel-active measure; do not label it pure B-response latency. A passing run [39830603645](https://github.com/chomskyintech/TitoGPU/actions/runs/39830603645) measured:
+These counters help distinguish memory input service from output writeback activity. They are testbench instrumentation, not synthesizable registers. The writeback idle-cycle counter is only a coarse no-channel-active measure; do not label it pure B-response latency. The corrected passing run [39831468187](https://github.com/chomskyintech/TitoGPU/actions/runs/39831468187) measured:
 
 | R-channel gap | AR handshakes | R beats | R-gap idle cycles | R stalls | AW handshakes | W beats | B responses | W stalls | Writeback non-channel-active cycles |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -93,7 +93,15 @@ These counters help distinguish memory input service from output writeback activ
 | 2 cycles | 4 | 16 | 24 | 12 | 1 | 16 | 1 | 4 | 32 |
 | 5 cycles | 4 | 16 | 60 | 0 | 1 | 16 | 1 | 3 | 32 |
 
-**Measurement correction:** run [39830875807](https://github.com/chomskyintech/TitoGPU/actions/runs/39830875807) initially labeled the DMA reader's `local_op_busy` interval as core-busy time. That signal actually covers the tiled operation controller, including loading and coordination; it is not the MAC compute core's busy signal. The testbench has been corrected to sample `dut.accel.frontend.tiled_core.burst_core.command_core.compute_core.busy` directly. The corrected MAC-core cycle counts are pending the next passing CI run; do not use the earlier 137/161 values as MAC compute time.
+**Measurement correction:** an earlier version labeled the DMA reader's `local_op_busy` interval as core-busy time. That signal covers the tiled operation controller, including loading and coordination; it is not the MAC compute core's busy signal. The testbench now samples `dut.accel.frontend.tiled_core.burst_core.command_core.compute_core.busy` directly. In passing run [39831468187](https://github.com/chomskyintech/TitoGPU/actions/runs/39831468187), the corrected measurements are:
+
+| AXI R-channel gap | MAC-core busy cycles | Non-core operation cycles | Internal operation latency |
+|---:|---:|---:|---:|
+| 0 cycles | 32 | 107 | 140 |
+| 2 cycles | 32 | 107 | 140 |
+| 5 cycles | 32 | 131 | 164 |
+
+The MAC-core busy count is the sampled `compute_core.busy` interval; non-core operation cycles are the operation-active cycles when that signal is not asserted. The two phase counters do not necessarily sum to the reported latency because their sampling boundaries and operation start/done edge accounting differ. Do not reuse the older 137/161 controller-busy values as MAC compute time.
 
 ## Interpretation
 
@@ -104,6 +112,6 @@ These counters help distinguish memory input service from output writeback activ
 
 ## Next measurements
 
-1. Add per-phase stall counters, so the initial compute operation can be distinguished from subsequent writeback error/recovery checks.
+1. Add a direct overlap counter for cycles where accepted input R-channel beats or read-response activity coincide with `compute_core.busy`; keep it scoped to the compute command.
 2. Add larger matrix/tile counts and report useful operations per cycle.
 3. Only after the cycle baseline is stable, use technology-appropriate synthesis and physical implementation flows for area, timing, and power estimates.
