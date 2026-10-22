@@ -115,3 +115,17 @@ The MAC-core busy count is the sampled `compute_core.busy` interval; non-core op
 1. Add a direct overlap counter for cycles where accepted input R-channel beats or read-response activity coincide with `compute_core.busy`; keep it scoped to the compute command.
 2. Add larger matrix/tile counts and report useful operations per cycle.
 3. Only after the cycle baseline is stable, use technology-appropriate synthesis and physical implementation flows for area, timing, and power estimates.
+
+## Prefetch/compute overlap investigation
+
+The latest overlap-instrumented full-system regression passed in [CI run 39833596759](https://github.com/chomskyintech/TitoGPU/actions/runs/39833596759), on commit [32fdcc8](https://github.com/chomskyintech/TitoGPU/commit/32fdcc83e6e22694056e57da34679b51119530e7). It samples the actual MAC core's `busy` signal and separately counts accepted AXI R beats and cycles with the read path active while MAC compute is busy.
+
+| AXI R-channel gap | MAC-core busy cycles | R beats accepted while MAC busy | Read-active cycles while MAC busy | Internal operation latency |
+|---:|---:|---:|---:|---:|
+| 0 | 32 | 3 | 12 | 140 |
+| 2 | 32 | 3 | 12 | 140 |
+| 5 | 32 | 2 | 12 | 164 |
+
+These counters show that prefetch and compute do overlap, but the overlap window is limited in this two-tile test. At gap 5, operation latency grows by 24 cycles while MAC-core busy time remains 32 cycles. The extra time is therefore outside active MAC execution. The counts do not by themselves identify every idle cycle's cause, and `read-active` means the read path reports active—not that a data beat was accepted every cycle.
+
+The RTL explains an important scheduling constraint: the DMA reader issues A then B as separate read bursts, with one read request/data sequence active at a time. The tiled controller can fill the inactive buffer while the current tile computes, then launches the next compute only when both next-tile banks are loaded and the current compute is complete. This is correct ping-pong buffering, but the measurements suggest the next tile's load is not fully hidden when memory responses are slow. Do not change the architecture based on the overlap counters alone; first trace the timing of current-tile compute start/done and next-tile A/B burst handshakes. A later optimization should be judged against the same three gap settings and all existing correctness/protocol checks.
