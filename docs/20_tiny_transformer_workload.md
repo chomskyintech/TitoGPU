@@ -1,6 +1,6 @@
 # Tiny Transformer Workload Specification (M1)
 
-**Status:** Workload proposal committed; deterministic software reference scaffold and smoke tests are now in the repository. The weights are intentionally untrained, and CI verification is pending.  
+**Status:** Workload proposal, deterministic software reference, machine-readable operator manifest and manifest consistency tests are committed. The weights are intentionally untrained; latest-commit CI must still be checked.  
 **Roadmap:** [SLM prototype roadmap](roadmap_slm_prototype.md)  
 **Hardware starting point:** [TitoGPU README](../README.md), [systolic MAC prototype](07_tito_systolic_mac_prototype.md), [K-dimension tiling contract](08_k_dimension_tiling.md), [AXI-Lite software control](18-software-controlled-system.md)  
 **Working branch:** `feature/tito-systolic-mac`
@@ -80,6 +80,8 @@ Before implementing a custom operator or changing RTL, verify:
 
 - [Reference implementation](../software/slm_reference.py) — pure Python, no third-party runtime dependencies; fixed seed and configuration; currently uses untrained deterministic weights.
 - [Reference smoke tests](../software/tests/test_slm_reference.py) — token mapping, finite logits, deterministic generation, context validation and invalid configuration.
+- [Machine-readable operator manifest](../software/slm_operator_manifest.json) — model constants, tensor conventions, operator shapes and explicit host-versus-candidate execution boundaries.
+- [Manifest consistency tests](../software/tests/test_slm_manifest.py) — checks the manifest against the executable reference configuration and tile-count assumptions.
 - Run locally from the repository root: `PYTHONPATH=software python3 -m unittest discover -s software/tests -v`.
 - Demo: `PYTHONPATH=software python3 software/slm_reference.py tito --new-tokens 8`.
 
@@ -97,4 +99,4 @@ M1 is complete only when:
 
 ## Next implementation task
 
-Run the new reference smoke tests in CI and fix any failures. Then add a deterministic, project-authored training corpus and training/export path, while auditing the accelerator test/command interface to decide how the host harness will invoke 4×4 matrix tiles and compare results. Do not begin transformer-specific RTL until the model's operator and numerical contracts are frozen.
+Run the full reference and manifest tests in CI and fix any failures. Next, freeze the quantisation/export contract and audit the accelerator command interface to design the host-to-RTL tile harness. Then add golden intermediate outputs and a deterministic, project-authored training/export path. Do not begin transformer-specific RTL until numerical semantics and the harness contract are explicit.
