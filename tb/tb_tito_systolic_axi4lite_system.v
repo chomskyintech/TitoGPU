@@ -62,7 +62,7 @@ module tb_tito_systolic_axi4lite_system;
     internal_op_start_cycle=bus_cycle;
     internal_op_started=1;
     compute_ar_handshakes=0; compute_r_beats=0; compute_r_gap_idle=0; compute_r_stalls=0;
-    compute_core_busy_cycles=0; compute_op_idle_cycles=0;
+    compute_core_busy_cycles=0; compute_noncore_busy_cycles=0;
    end
    if(dut.op_busy) begin
     if(dut.accel.frontend.tiled_core.burst_core.command_core.compute_core.busy) compute_core_busy_cycles=compute_core_busy_cycles+1;
@@ -87,7 +87,7 @@ module tb_tito_systolic_axi4lite_system;
     internal_op_done_cycle=bus_cycle;
     internal_op_cycles=internal_op_done_cycle-internal_op_start_cycle;
     $display("PERF-INTERNAL: accelerator op_start-to-op_done latency=%0d AXI memory-model cycles",internal_op_cycles);
-    $display("PERF-COMPUTE-PHASE: MAC-core-busy=%0d non-core-operation=%0d cycles; AR handshakes=%0d R beats=%0d R-gap-idle=%0d R-stalls=%0d cycles",compute_core_busy_cycles,compute_op_idle_cycles,compute_ar_handshakes,compute_r_beats,compute_r_gap_idle,compute_r_stalls);
+    $display("PERF-COMPUTE-PHASE: MAC-core-busy=%0d non-core-operation=%0d cycles; AR handshakes=%0d R beats=%0d R-gap-idle=%0d R-stalls=%0d cycles",compute_core_busy_cycles,compute_noncore_busy_cycles,compute_ar_handshakes,compute_r_beats,compute_r_gap_idle,compute_r_stalls);
     internal_op_started=0;
    end
   end
