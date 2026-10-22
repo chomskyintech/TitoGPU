@@ -8,7 +8,7 @@ Trace a command from an AXI4-Lite register write through the compute frontend an
 
 The register bank is the software contract; the accelerator is the execution engine. Software writes configuration registers, writes a one-shot command bit, polls sticky status, and then requests writeback. The AXI4-Lite response only means the register transaction completed. It does not mean the compute command succeeded.
 
-The integrated test uses two K tiles. Both A tiles are 4×4 identity matrices; B0 contains 1 through 16 and B1 contains 10 through 25. The tiled result is A0×B0 + A1×B1, so the expected output is 11 through 41. This independently checks tile address progression, accumulation across tiles, and the real DMA, MAC, result buffer, and AXI writeback paths.
+The integrated test uses two K tiles. Both A tiles are 4×4 identity matrices; B0 contains 1 through 16 and B1 contains 10 through 25. The tiled result is A0×B0 + A1×B1, so the expected output is 11, 13, 15, …, 41. This independently checks tile address progression, accumulation across tiles, and the real DMA, MAC, result buffer, and AXI writeback paths.
 
 ## Code tour
 
