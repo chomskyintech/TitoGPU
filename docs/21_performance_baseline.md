@@ -129,3 +129,29 @@ The latest overlap-instrumented full-system regression passed in [CI run 3983359
 These counters show that prefetch and compute do overlap, but the overlap window is limited in this two-tile test. At gap 5, operation latency grows by 24 cycles while MAC-core busy time remains 32 cycles. The extra time is therefore outside active MAC execution. The counts do not by themselves identify every idle cycle's cause, and `read-active` means the read path reports active—not that a data beat was accepted every cycle.
 
 The RTL explains an important scheduling constraint: the DMA reader issues A then B as separate read bursts, with one read request/data sequence active at a time. The tiled controller can fill the inactive buffer while the current tile computes, then launches the next compute only when both next-tile banks are loaded and the current compute is complete. This is correct ping-pong buffering, but the measurements suggest the next tile's load is not fully hidden when memory responses are slow. Do not change the architecture based on the overlap counters alone; first trace the timing of current-tile compute start/done and next-tile A/B burst handshakes. A later optimization should be judged against the same three gap settings and all existing correctness/protocol checks.
+
+
+## Cycle-by-cycle tile scheduling trace
+
+The passing trace-instrumentation regression on commit [7e79b22](https://github.com/chomskyintech/TitoGPU/commit/7e79b2285d0cbac5c2aaad537df7605701aa873c) records the actual sequence for the two-tile full-system test. The addresses identify tile 0 A/B at `0x100/0x200` and tile 1 A/B at `0x110/0x210`. These are sampled simulation cycles, not wall-clock time.
+
+| Event | `MEM_GAP=0` | `MEM_GAP=2` | `MEM_GAP=5` |
+|---|---:|---:|---:|
+| Tile 0 compute starts | 65 | 65 | 77 |
+| Tile 1 A burst final R beat | 87 | 87 | 105 |
+| Tile 0 compute completes | 100 | 100 | 112 |
+| Tile 1 B burst final R beat | 111 | 111 | 135 |
+| Tile 1 compute starts | 117 | 117 | 141 |
+| Tile 0 completion → tile 1 B final beat | 11 cycles | 11 cycles | 23 cycles |
+| Tile 1 B final beat → tile 1 compute start | 6 cycles | 6 cycles | 6 cycles |
+
+The `MEM_GAP=0` and `MEM_GAP=2` event cycles happen to match in this trace, even though the aggregate operation counters differ in some R-channel idle/stall cycles. At `MEM_GAP=5`, tile 0 finishes before tile 1's B burst has returned its final beat; tile 1's input pair is therefore not ready when compute 0 finishes. Once the B final beat arrives, there are still six cycles until compute 1 starts, which is the controller/hand-off interval visible in this trace. These measurements isolate two costs: waiting for the next tile's B input, then waiting for the launch hand-off. They do not, by themselves, prove all six hand-off cycles can be removed safely.
+
+Trace markers emitted by the system testbench:
+
+- `TRACE-START`: operation start and reader state.
+- `TRACE-AR`: accepted read-address phase as observed by the testbench, including address, burst length, and tile index.
+- `TRACE-RLAST`: final beat of each burst, with reader/tiled-controller state.
+- `TRACE-COMPUTE-START` / `TRACE-COMPUTE-DONE`: tile compute boundaries.
+
+The trace is simulation-only instrumentation; it does not change synthesizable RTL behavior. The RTL regression and synthesis checks passed in [CI run 39837889253](https://github.com/chomskyintech/TitoGPU/actions/runs/39837889253). The next design step should investigate whether the six-cycle launch hand-off is required by the current state/flag update sequence, then compare any change against all three memory-gap settings and the full regression.
