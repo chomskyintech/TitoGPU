@@ -19,6 +19,7 @@ module tb_tito_systolic_axi4lite_system;
  reg rd_active=0,wr_addr_seen=0,wr_resp_pending=0;
  reg inject_next_bresp_error=0;
  integer i,cycles,read_burst_count,bus_cycle,phase_start_cycle,compute_observed_cycles,writeback_observed_cycles;
+ integer mem_gap=2,r_gap_count=0;
  reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
  reg [ADDR_W+ID_W+13-1:0] prev_aw_payload,prev_ar_payload;
  reg [31:0] prev_wdata,prev_rdata;
@@ -43,7 +44,7 @@ module tb_tito_systolic_axi4lite_system;
  always @(posedge clk or negedge resetb) begin
   if(!resetb) begin
    awready_m<=0; wready_m<=0; arready_m_q<=0; rvalid_m_q<=0; bvalid_m_q<=0;
-   rd_active<=0; wr_addr_seen<=0; wr_resp_pending<=0; rd_index<=0; wr_index<=0;
+   rd_active<=0; wr_addr_seen<=0; wr_resp_pending<=0; rd_index<=0; wr_index<=0; r_gap_count<=0;
    rd_base<=0; rd_len<=0; wr_base<=0; wr_len<=0; rlast_q<=0; rresp_m_q<=0; bresp_m_q<=0; rid_q<=0; rdata_m_q<=0; read_burst_count<=0; bus_cycle<=0;
    prev_aw_stall<=0; prev_w_stall<=0; prev_ar_stall<=0; prev_r_stall<=0; prev_b_stall<=0;
   end else begin
@@ -87,7 +88,7 @@ module tb_tito_systolic_axi4lite_system;
      default: $fatal(1,"unexpected extra input read burst #%0d at %h",read_burst_count,araddr_m);
     endcase
     read_burst_count<=read_burst_count+1;
-    rd_active<=1; rd_base<=araddr_m; rd_len<=arlen; rd_index<=0; rvalid_m_q<=0;
+    rd_active<=1; rd_base<=araddr_m; rd_len<=arlen; rd_index<=0; r_gap_count<=0; rvalid_m_q<=0;
    end else if(rd_active && rvalid_m_q && rready_m) begin
     if(rlast_q) begin rd_active<=0; rvalid_m_q<=0; end
     else begin
@@ -95,7 +96,10 @@ module tb_tito_systolic_axi4lite_system;
      rdata_m_q<={mem[rd_base+(rd_index+1'b1)*4+3],mem[rd_base+(rd_index+1'b1)*4+2],mem[rd_base+(rd_index+1'b1)*4+1],mem[rd_base+(rd_index+1'b1)*4]};
      rid_q<=0; rresp_m_q<=0; rlast_q<=((rd_index+1'b1)==rd_len); rvalid_m_q<=1;
     end
-   end else if(rd_active && !rvalid_m_q && (bus_cycle % 3 != 0)) begin
+   end else if(rd_active && !rvalid_m_q && r_gap_count>0) begin
+    r_gap_count<=r_gap_count-1;
+   end else if(rd_active && !rvalid_m_q) begin
+    r_gap_count<=mem_gap;
     rdata_m_q<={mem[rd_base+rd_index*4+3],mem[rd_base+rd_index*4+2],mem[rd_base+rd_index*4+1],mem[rd_base+rd_index*4]};
     rid_q<=0; rresp_m_q<=0; rlast_q<=(rd_index==rd_len); rvalid_m_q<=1;
    end
@@ -145,6 +149,9 @@ module tb_tito_systolic_axi4lite_system;
  endtask
  reg [31:0] status;
  initial begin
+  if(!$value$plusargs("MEM_GAP=%d",mem_gap)) mem_gap=2;
+  if(mem_gap<0 || mem_gap>20) $fatal(1,"MEM_GAP must be between 0 and 20, got %0d",mem_gap);
+  $display("CONFIG: top-level AXI R-channel inter-beat MEM_GAP=%0d cycles",mem_gap);
   for(i=0;i<4096;i=i+1) mem[i]=0;
   // Two K tiles: both A tiles are identity. B0=1..16 and B1=10..25,
   // so the accumulated result A0*B0 + A1*B1 is 11..41.
