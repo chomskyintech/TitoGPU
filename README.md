@@ -35,6 +35,7 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 - [Double-buffered tiled controller](rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v)
 - [Double-buffered DMA frontend](rtl/tito_systolic_double_buffered_dma_reader.v)
 - [K-dimension tiling test](tb/tb_tito_systolic_k_tiling.v)
+- [16×16 GEMM tile-orchestration test](tb/tb_tito_systolic_transformer_linear.v)
 - [Burst loader end-to-end test](tb/tb_tito_systolic_burst_command_accelerator.v)
 - [Autonomous two-tile test](tb/tb_tito_systolic_tiled_burst_accelerator.v)
 - [DMA read frontend test](tb/tb_tito_systolic_dma_reader.v)
