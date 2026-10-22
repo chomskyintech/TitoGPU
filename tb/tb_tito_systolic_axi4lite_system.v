@@ -60,7 +60,7 @@ module tb_tito_systolic_axi4lite_system;
     $fatal(1,"AXI W payload/VALID changed while stalled");
    if(prev_ar_stall && (!arvalid_m || {arid,araddr_m,arlen,arsize,arburst} !== prev_ar_payload))
     $fatal(1,"AXI AR payload/VALID changed while stalled");
-   if(prev_r_stall && (!rvalid_m_q || {rid_q,rdata_m_q,rresp_m_q,rlast_q} !== {prev_r_payload,prev_rdata,prev_rlast}))
+   if(prev_r_stall && (!rvalid_m_q || {rid_q,rresp_m_q,rdata_m_q,rlast_q} !== {prev_r_payload,prev_rdata,prev_rlast}))
     $fatal(1,"AXI R payload/VALID changed while stalled");
    if(prev_b_stall && (!bvalid_m_q || bresp_m_q !== prev_b_payload[1:0]))
     $fatal(1,"AXI B payload/VALID changed while stalled");
