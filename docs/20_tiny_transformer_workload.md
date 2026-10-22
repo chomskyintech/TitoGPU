@@ -42,7 +42,7 @@ The reference model should implement this sequence:
 8. Residual addition and final normalisation.
 9. Vocabulary logits and greedy next-token selection.
 
-Use a clear, documented convention for tensor layout, linear-layer weight layout, bias, normalisation epsilon, activation, quantisation scales, rounding, saturation and output comparison tolerance. Do not let these semantics vary between the software reference, quantizer and RTL harness.
+Use a clear, documented convention for tensor layout, linear-layer weight layout, bias, normalisation epsilon, activation, quantisation scales, rounding, saturation and output comparison tolerance. Do not let these semantics vary between the software reference, quantizer and RTL harness. The first quantisation contract is in [slm_quantization.py](../software/slm_quantization.py): symmetric per-output-channel weights use max(abs(weight))/127, activations use an explicit positive per-tensor scale, rounding is ties-to-even, activation codes saturate to [-128,127], and weight codes saturate to [-127,127]. Bias remains outside the MAC and is added after dequantisation. This is a reference contract, not yet validated against RTL.
 
 ## Execution split for the first prototype
 
@@ -81,6 +81,7 @@ Before implementing a custom operator or changing RTL, verify:
 - [Reference implementation](../software/slm_reference.py) — pure Python, no third-party runtime dependencies; fixed seed and configuration; currently uses untrained deterministic weights.
 - [Reference smoke tests](../software/tests/test_slm_reference.py) — token mapping, finite logits, deterministic generation, context validation and invalid configuration.
 - [Machine-readable operator manifest](../software/slm_operator_manifest.json) — model constants, tensor conventions, operator shapes and explicit host-versus-candidate execution boundaries.
+- [Quantisation reference helpers](../software/slm_quantization.py) and [quantisation tests](../software/tests/test_slm_quantization.py) — deterministic INT8 conversion, per-output-channel weight scales, checked INT32 dot product and dequantisation.
 - [Manifest consistency tests](../software/tests/test_slm_manifest.py) — checks the manifest against the executable reference configuration and tile-count assumptions.
 - Run locally from the repository root: `PYTHONPATH=software python3 -m unittest discover -s software/tests -v`.
 - Demo: `PYTHONPATH=software python3 software/slm_reference.py tito --new-tokens 8`.
@@ -99,4 +100,4 @@ M1 is complete only when:
 
 ## Next implementation task
 
-Run the full reference and manifest tests in CI and fix any failures. Next, freeze the quantisation/export contract and audit the accelerator command interface to design the host-to-RTL tile harness. Then add golden intermediate outputs and a deterministic, project-authored training/export path. Do not begin transformer-specific RTL until numerical semantics and the harness contract are explicit.
+Run the full reference and manifest tests in CI and fix any failures. Next, test the quantisation contract in CI, then audit the accelerator command interface to design the host-to-RTL tile harness. Add golden intermediate outputs and a deterministic, project-authored training/export path. Do not begin transformer-specific RTL until numerical semantics and the harness contract are explicit.
