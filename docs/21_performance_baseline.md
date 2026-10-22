@@ -78,6 +78,15 @@ The testbench also prints aggregate AXI stall counters after the end-to-end and 
 
 These are aggregate counts across the complete testbench run, including the follow-up writeback error/recovery checks; they are not counters for only the first compute command. `R stalled cycles` means the DUT held RREADY low while the memory model had RVALID asserted. `R-response-gap idle cycles` counts cycles with an active read burst, no RVALID, and a positive configured gap counter. The two counts should be interpreted together: a longer inter-beat delay creates more cycles with no RVALID and may reduce the number of cycles in which a valid beat is stalled by the receiver.
 
+## Phase-level counters
+
+The top-level testbench now scopes additional simulation counters to each operation rather than relying only on whole-test aggregates:
+
+- **Compute phase:** accepted AXI AR addresses, accepted R beats, R-channel response-gap idle cycles, and R-channel stalls while the compute operation is busy.
+- **Writeback phase:** accepted AW addresses, accepted W beats, accepted B responses, W-channel stalls, and cycles with no active AW/W/B channel.
+
+These counters help distinguish memory input service from output writeback activity. They are testbench instrumentation, not synthesizable registers. The writeback idle-cycle counter is only a coarse no-channel-active measure; do not label it pure B-response latency. Use the printed `PERF-COMPUTE-PHASE` and `PERF-WRITEBACK-PHASE` lines from a passing run before drawing conclusions.
+
 ## Interpretation
 
 - The 0-gap case is the idealized memory-response case, not a realistic external-memory guarantee.
