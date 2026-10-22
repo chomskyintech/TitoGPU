@@ -18,7 +18,7 @@ module tb_tito_systolic_axi4lite_system;
  reg [ADDR_W-1:0] rd_base,wr_base; reg [7:0] rd_len,wr_len,rd_index,wr_index;
  reg rd_active=0,wr_addr_seen=0,wr_resp_pending=0;
  reg inject_next_bresp_error=0;
- integer i,cycles;
+ integer i,cycles,read_burst_count;
  assign bvalid_m=bvalid_m_q; assign arready_m=arready_m_q; assign rvalid_m=rvalid_m_q;
  assign bresp_m=bresp_m_q; assign rresp_m=rresp_m_q; assign rid=rid_q; assign rdata_m=rdata_m_q; assign rlast=rlast_q;
  always #5 clk=~clk;
@@ -38,12 +38,21 @@ module tb_tito_systolic_axi4lite_system;
   if(!resetb) begin
    awready_m<=0; wready_m<=0; arready_m_q<=0; rvalid_m_q<=0; bvalid_m_q<=0;
    rd_active<=0; wr_addr_seen<=0; wr_resp_pending<=0; rd_index<=0; wr_index<=0;
-   rd_base<=0; rd_len<=0; wr_base<=0; wr_len<=0; rlast_q<=0; rresp_m_q<=0; bresp_m_q<=0; rid_q<=0; rdata_m_q<=0;
+   rd_base<=0; rd_len<=0; wr_base<=0; wr_len<=0; rlast_q<=0; rresp_m_q<=0; bresp_m_q<=0; rid_q<=0; rdata_m_q<=0; read_burst_count<=0;
   end else begin
    awready_m<=1; wready_m<=1; arready_m_q<=1;
    if(arvalid_m && arready_m_q) begin
     if(rd_active) $fatal(1,"unexpected overlapping AXI read address");
     if(arsize!=2 || arburst!=1 || arid!=0) $fatal(1,"bad AR fields");
+    if(arlen!=8'd3) $fatal(1,"expected four-beat AXI read burst, ARLEN=%0d",arlen);
+    case(read_burst_count)
+     0: if(araddr_m!=32'h0100) $fatal(1,"expected A tile 0 at 0x100, got %h",araddr_m);
+     1: if(araddr_m!=32'h0200) $fatal(1,"expected B tile 0 at 0x200, got %h",araddr_m);
+     2: if(araddr_m!=32'h0110) $fatal(1,"expected A tile 1 at 0x110, got %h",araddr_m);
+     3: if(araddr_m!=32'h0210) $fatal(1,"expected B tile 1 at 0x210, got %h",araddr_m);
+     default: $fatal(1,"unexpected extra input read burst #%0d at %h",read_burst_count,araddr_m);
+    endcase
+    read_burst_count<=read_burst_count+1;
     rd_active<=1; rd_base<=araddr_m; rd_len<=arlen; rd_index<=0; rvalid_m_q<=0;
    end else if(rd_active && rvalid_m_q && rready_m) begin
     if(rlast_q) begin rd_active<=0; rvalid_m_q<=0; end
@@ -58,10 +67,13 @@ module tb_tito_systolic_axi4lite_system;
    end
    if(awvalid_m && awready_m) begin
     if(awsize!=2 || awburst!=1 || awid!=0) $fatal(1,"bad AW fields");
+    if(awaddr_m[1:0]!=0 || (awaddr_m[11:0]+((awlen+1)*4)>4096)) $fatal(1,"invalid or 4KiB-crossing write burst");
     wr_base<=awaddr_m; wr_len<=awlen; wr_index<=0; wr_addr_seen<=1;
    end
    if(wvalid_m && wready_m) begin
     if(!(wr_addr_seen || (awvalid_m && awready_m))) $fatal(1,"W beat accepted before AW in this simple memory model");
+    if(wlast !== (((awvalid_m && awready_m) ? 0 : wr_index) == ((awvalid_m && awready_m) ? awlen : wr_len)))
+     $fatal(1,"WLAST mismatch: index=%0d AWLEN=%0d WLAST=%b",(awvalid_m && awready_m) ? 0 : wr_index,(awvalid_m && awready_m) ? awlen : wr_len,wlast);
     for(integer lane=0;lane<4;lane=lane+1) if(wstrb_m[lane])
      mem[(awvalid_m && awready_m ? awaddr_m : wr_base)+(awvalid_m && awready_m ? 0 : wr_index)*4+lane]<=wdata_m[lane*8 +: 8];
     if(wlast) begin wr_addr_seen<=0; wr_resp_pending<=1; end
@@ -100,13 +112,16 @@ module tb_tito_systolic_axi4lite_system;
  reg [31:0] status;
  initial begin
   for(i=0;i<4096;i=i+1) mem[i]=0;
-  // A = identity; B = 1..16 in row-major order.
+  // Two K tiles: both A tiles are identity. B0=1..16 and B1=10..25,
+  // so the accumulated result A0*B0 + A1*B1 is 11..41.
   for(i=0;i<16;i=i+1) begin
    mem[16'h0100+i]=((i/4)==(i%4)) ? 8'd1 : 8'd0;
+   mem[16'h0110+i]=((i/4)==(i%4)) ? 8'd1 : 8'd0;
    mem[16'h0200+i]=i+1;
+   mem[16'h0210+i]=i+10;
   end
   repeat(4) @(negedge clk); resetb=1;
-  axil_write('h08,'h0100); axil_write('h0C,'h0200); axil_write('h10,1); axil_write('h14,'h0300);
+  axil_write('h08,'h0100); axil_write('h0C,'h0200); axil_write('h10,2); axil_write('h14,'h0300);
   axil_write('h00,1);
   // A second start while compute is active must be rejected and latched.
   axil_write('h00,1);
@@ -124,10 +139,10 @@ module tb_tito_systolic_axi4lite_system;
   while(!status[9] && !status[10] && cycles<5000) begin axil_read('h04,status); cycles=cycles+1; end
   if(!status[9] || status[10]) $fatal(1,"writeback did not complete successfully, STATUS=%h",status);
   for(i=0;i<16;i=i+1) begin
-   if({mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]} !== i+1)
-    $fatal(1,"result mismatch at word %0d: got %h%h%h%h",i,mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]);
+   if({mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]} !== i+11)
+    $fatal(1,"multi-tile result mismatch at word %0d: expected %0d got %h%h%h%h",i,i+11,mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]);
   end
-  $display("PASS: AXI-Lite configured compute and writeback; 16 external-memory results match reference");
+  $display("PASS: AXI-Lite launched two K tiles; four input bursts and 16 accumulated results match reference");
 
   // Inject a one-shot AXI SLVERR on the next write response. Software must see
   // the latched writeback-error status and the documented error code.
