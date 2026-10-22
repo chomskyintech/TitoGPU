@@ -17,6 +17,13 @@ module tito_systolic_double_buffered_banked_scratchpad #(
     input  wire                       wr_bank,   // 0 = A, 1 = B
     input  wire [ADDR_W-1:0]          wr_addr,
     input  wire [DATA_W-1:0]          wr_data,
+    // Optional packed ingress port: masked lanes write consecutive logical bytes.
+    input  wire                       pack_wr_en,
+    input  wire                       pack_wr_buffer,
+    input  wire                       pack_wr_bank,
+    input  wire [ADDR_W-1:0]          pack_wr_base,
+    input  wire [4*DATA_W-1:0]        pack_wr_data,
+    input  wire [3:0]                 pack_wr_mask,
     input  wire                       rd_en,
     input  wire                       rd_buffer,
     input  wire [N*K_ADDR_W-1:0]      a_rd_addr,
@@ -30,7 +37,9 @@ module tito_systolic_double_buffered_banked_scratchpad #(
     reg [DATA_W-1:0] b1_mem [0:N-1][0:K-1];
     integer wr_row, wr_col, wr_idx;
     integer rd_row, rd_col;
+    integer pack_lane, pack_addr, pack_row, pack_col;
 
+    // The original byte port remains available as the reference path.
     always @(posedge clk) begin
         if (wr_en && wr_addr < N*K) begin
             if (!wr_bank) begin
@@ -47,6 +56,28 @@ module tito_systolic_double_buffered_banked_scratchpad #(
                     b0_mem[wr_col][wr_idx] <= wr_data;
                 else
                     b1_mem[wr_col][wr_idx] <= wr_data;
+            end
+        end
+        if (pack_wr_en) begin
+            for (pack_lane = 0; pack_lane < 4; pack_lane = pack_lane + 1) begin
+                pack_addr = pack_wr_base + pack_lane;
+                if (pack_wr_mask[pack_lane] && pack_addr < N*K) begin
+                    if (!pack_wr_bank) begin
+                        pack_row = pack_addr / K;
+                        pack_col = pack_addr % K;
+                        if (!pack_wr_buffer)
+                            a0_mem[pack_row][pack_col] <= pack_wr_data[pack_lane*DATA_W +: DATA_W];
+                        else
+                            a1_mem[pack_row][pack_col] <= pack_wr_data[pack_lane*DATA_W +: DATA_W];
+                    end else begin
+                        pack_row = pack_addr / N;
+                        pack_col = pack_addr % N;
+                        if (!pack_wr_buffer)
+                            b0_mem[pack_col][pack_row] <= pack_wr_data[pack_lane*DATA_W +: DATA_W];
+                        else
+                            b1_mem[pack_col][pack_row] <= pack_wr_data[pack_lane*DATA_W +: DATA_W];
+                    end
+                end
             end
         end
     end
