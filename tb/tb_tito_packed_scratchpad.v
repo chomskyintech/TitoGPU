@@ -36,6 +36,13 @@ module tb_tito_packed_scratchpad;
         dut.a1_mem[0][2] !== 8'h33 || dut.a1_mem[0][3] !== 8'h44)
       $fatal(1,"packed A lane ordering or mapping failed");
 
+    // Seed masked-off B locations with known sentinels before the partial write.
+    wr_en=1; wr_buffer=0; wr_bank=1; wr_addr=5; wr_data=8'h55;
+    @(negedge clk);
+    wr_addr=7; wr_data=8'h77;
+    @(negedge clk);
+    wr_en=0;
+
     // Partial final word: only lanes 0 and 2 commit; masked lanes must not write.
     pack_wr_en=1; pack_wr_buffer=0; pack_wr_bank=1; pack_wr_base=4;
     pack_wr_data=32'hD4C3B2A1; pack_wr_mask=4'b0101;
@@ -43,8 +50,8 @@ module tb_tito_packed_scratchpad;
     pack_wr_en=0;
     if (dut.b0_mem[0][1] !== 8'hA1 || dut.b0_mem[2][1] !== 8'hC3)
       $fatal(1,"packed B active lanes failed");
-    if (dut.b0_mem[1][1] !== 8'hxx || dut.b0_mem[3][1] !== 8'hxx)
-      $display("NOTE: masked B locations remain unwritten (uninitialized)");
+    if (dut.b0_mem[1][1] !== 8'h55 || dut.b0_mem[3][1] !== 8'h77)
+      $fatal(1,"masked packed lanes overwrote sentinel data");
 
     // Packed and byte writes are both supported; byte port remains the reference path.
     wr_en=1; wr_buffer=1; wr_bank=0; wr_addr=5; wr_data=8'h5A;
