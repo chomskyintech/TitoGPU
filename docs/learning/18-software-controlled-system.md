@@ -8,7 +8,7 @@ Trace a command from an AXI4-Lite register write through the compute frontend an
 
 The register bank is the software contract; the accelerator is the execution engine. Software writes configuration registers, writes a one-shot command bit, polls sticky status, and then requests writeback. The AXI4-Lite response only means the register transaction completed. It does not mean the compute command succeeded.
 
-For this first integrated test, A is the 4×4 identity matrix and B contains the values 1 through 16. Therefore A×B must equal B. This makes the expected result easy to calculate independently while exercising the real DMA, MAC, result buffer, and AXI writeback paths.
+The integrated test uses two K tiles. Both A tiles are 4×4 identity matrices; B0 contains 1 through 16 and B1 contains 10 through 25. The tiled result is A0×B0 + A1×B1, so the expected output is 11 through 41. This independently checks tile address progression, accumulation across tiles, and the real DMA, MAC, result buffer, and AXI writeback paths.
 
 ## Code tour
 
@@ -27,7 +27,7 @@ make sim
 make synth-system
 ```
 
-The test should print `PASS: AXI-Lite configured compute and writeback; 16 external-memory results match reference`, followed by PASS messages for visible SLVERR reporting and W1C clearing. The full regression and `synth-system` target passed in [CI run 39547281630](https://github.com/chomskyintech/TitoGPU/actions/runs/39547281630).
+The test should print a PASS message confirming two K tiles, four input bursts, and 16 accumulated results, followed by PASS messages for visible SLVERR reporting and W1C clearing. The prior single-tile/error-path regression passed in [CI run 39547431080](https://github.com/chomskyintech/TitoGPU/actions/runs/39547431080); the latest two-tile extension is awaiting CI.
 
 ## Trace it before running
 
@@ -40,7 +40,7 @@ The test should print `PASS: AXI-Lite configured compute and writeback; 16 exter
 
 1. Change B's contents and independently update the expected result check.
 2. Extend the busy-command test to cover a rejected writeback command while compute is active and a CONTROL write with both start bits set.
-3. Stretch goal: extend the memory model to insert variable R-channel gaps and run a multi-tile test from the software-visible interface.
+3. Extend the memory model to insert randomized R-channel gaps and W-channel stalls while checking VALID/payload stability.
 4. Extend fault injection to AXI RRESP errors and define how read errors should be surfaced through the software-visible STATUS/ERROR_CODE contract.
 
 ## Review notes
@@ -48,5 +48,5 @@ The test should print `PASS: AXI-Lite configured compute and writeback; 16 exter
 - A CONTROL write response acknowledges a register write; STATUS communicates operation completion.
 - The completion bits are latched because the underlying hardware done signal is only a pulse.
 - The system regression now also issues a second compute-start command while the first operation is active, checks STATUS bit 31, and clears the rejection latch with W1C.
-- The end-to-end test uses the real memory transaction interfaces but currently covers one tile. Multi-tile and gap coverage remains in the lower-level regression.
+- The end-to-end test now covers two K tiles, checks the expected four read bursts and output accumulation, and checks WLAST placement and write-burst 4 KiB boundaries. Randomized backpressure and full protocol assertions remain follow-up work.
 - Yosys generic synthesis is not a physical PPA report.
