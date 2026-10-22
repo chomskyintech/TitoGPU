@@ -34,7 +34,7 @@ Counters help explain *why* latency changes, not just *whether* it changes.
 
 ## Baseline result
 
-The lower-level reference run is 137 cycles at `MEM_GAP=0`, 147 cycles at `MEM_GAP=2`, and 181 cycles at `MEM_GAP=5`. Separately, the passing software-facing AXI-Lite system regression measured the following command-to-status latencies as the inter-beat AXI R-channel gap was swept: 147/60 cycles (compute/writeback) at gap 0, 147/60 at gap 2, and 171/60 at gap 5. These top-level values include register access and polling overhead and reflect the deterministic memory/backpressure model; see the linked baseline document and [CI run](https://github.com/chomskyintech/TitoGPU/actions/runs/39817490186). Keep the two measurement boundaries separate.
+The lower-level reference run is 137 cycles at `MEM_GAP=0`, 147 cycles at `MEM_GAP=2`, and 181 cycles at `MEM_GAP=5`. Separately, the passing software-facing AXI-Lite system regression measured the following command-to-status latencies as the inter-beat AXI R-channel gap was swept: 147/60 cycles (compute/writeback) at gap 0, 147/60 at gap 2, and 171/60 at gap 5. These top-level values include register access and polling overhead and reflect the deterministic memory/backpressure model. The latest regression also counts core-busy cycles: 137 at gaps 0 and 2, rising to 161 at gap 5; outer operation-busy cycles while the local core is idle remain 2 in all cases. Input activity is 4 AR handshakes and 16 R beats for every run, while R-gap idle cycles are 0/24/60 and R stalls are 36/12/0 at gaps 0/2/5. Writeback uses one AW handshake, 16 W beats and one B response, with 4/4/3 W-stall cycles. See the [performance baseline](../21_performance_baseline.md) and [passing CI run](https://github.com/chomskyintech/TitoGPU/actions/runs/39830875807). Keep the two measurement boundaries separate.
 
 ## Exercise
 
@@ -46,7 +46,7 @@ The lower-level reference run is 137 cycles at `MEM_GAP=0`, 147 cycles at `MEM_G
 
 ## Phase-level measurement
 
-The software-facing testbench now tracks input-read address handshakes, accepted read beats, response-gap idle cycles and read stalls while the compute operation is busy. During writeback it tracks accepted write addresses, write beats, write responses, write stalls and cycles with no active AW/W/B channel. These are simulation-only counters scoped to the named phase; they are not hardware performance registers. Confirm their values from a passing CI run before using them to justify an optimization.
+The software-facing testbench tracks input-read address handshakes, accepted read beats, response-gap idle cycles and read stalls while the compute operation is busy. It also samples the local tiled core's busy signal to separate core-active cycles from outer-operation cycles. During writeback it tracks accepted write addresses, write beats, write responses, write stalls and cycles with no active AW/W/B channel. These are simulation-only counters scoped to the named phase; they are not hardware performance registers.
 
 ## Key takeaway
 
