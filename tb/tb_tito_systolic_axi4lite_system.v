@@ -139,8 +139,8 @@ module tb_tito_systolic_axi4lite_system;
   while(!status[9] && !status[10] && cycles<5000) begin axil_read('h04,status); cycles=cycles+1; end
   if(!status[9] || status[10]) $fatal(1,"writeback did not complete successfully, STATUS=%h",status);
   for(i=0;i<16;i=i+1) begin
-   if({mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]} !== i+11)
-    $fatal(1,"multi-tile result mismatch at word %0d: expected %0d got %h%h%h%h",i,i+11,mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]);
+   if({mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]} !== (i*2+11))
+    $fatal(1,"multi-tile result mismatch at word %0d: expected %0d got %h%h%h%h",i,(i*2+11),mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]);
   end
   $display("PASS: AXI-Lite launched two K tiles; four input bursts and 16 accumulated results match reference");
 
