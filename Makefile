@@ -23,6 +23,8 @@ sim:
 	vvp build_tito_command
 	iverilog -g2012 -Wall -o build_tito_k_tiling rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v tb/tb_tito_systolic_k_tiling.v
 	vvp build_tito_k_tiling
+	iverilog -g2012 -Wall -o build_tito_transformer_linear rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v tb/tb_tito_systolic_transformer_linear.v
+	vvp build_tito_transformer_linear
 	iverilog -g2012 -Wall -o build_tito_burst rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v rtl/tito_systolic_burst_command_accelerator.v tb/tb_tito_systolic_burst_command_accelerator.v
 	vvp build_tito_burst
 	iverilog -g2012 -Wall -o build_tito_tiled rtl/tito_systolic_mac.v rtl/tito_systolic_banked_scratchpad.v rtl/tito_systolic_stream_accelerator.v rtl/tito_systolic_command_accelerator.v rtl/tito_systolic_burst_command_accelerator.v rtl/tito_systolic_tiled_burst_accelerator.v tb/tb_tito_systolic_tiled_burst_accelerator.v
