@@ -40,7 +40,7 @@ The test should print a PASS message confirming two K tiles, four input bursts, 
 
 1. Change B's contents and independently update the expected result check.
 2. Extend the busy-command test to cover a rejected writeback command while compute is active and a CONTROL write with both start bits set.
-3. Extend the memory model to insert randomized R-channel gaps and W-channel stalls while checking VALID/payload stability.
+3. Extend deterministic READY/response gaps to randomized backpressure and add coverage counters for stalled cycles on each AXI channel.
 4. Extend fault injection to AXI RRESP errors and define how read errors should be surfaced through the software-visible STATUS/ERROR_CODE contract.
 
 ## Review notes
@@ -48,5 +48,5 @@ The test should print a PASS message confirming two K tiles, four input bursts, 
 - A CONTROL write response acknowledges a register write; STATUS communicates operation completion.
 - The completion bits are latched because the underlying hardware done signal is only a pulse.
 - The system regression now also issues a second compute-start command while the first operation is active, checks STATUS bit 31, and clears the rejection latch with W1C.
-- The end-to-end test now covers two K tiles, checks the expected four read bursts and output accumulation, and checks WLAST placement and write-burst 4 KiB boundaries. Randomized backpressure and full protocol assertions remain follow-up work.
+- The end-to-end test now covers two K tiles, checks the expected four read bursts and output accumulation, and checks WLAST placement and write-burst 4 KiB boundaries. Deterministic AW/W/AR READY gaps and R-response gaps now exercise VALID/payload stability checks. Randomized backpressure and broader protocol coverage remain follow-up work.
 - Yosys generic synthesis is not a physical PPA report.
