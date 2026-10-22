@@ -10,7 +10,8 @@ module tito_systolic_double_buffered_burst_command_accelerator #(
     parameter integer ACC_W = 32,
     parameter integer MEM_ADDR_W = (N*K > 1 ? $clog2(N*K) : 1),
     parameter integer RESULT_ADDR_W = (N*N > 1 ? $clog2(N*N) : 1),
-    parameter integer BURST_LEN_W = (N*K > 1 ? $clog2(N*K+1) : 1)
+    parameter integer BURST_LEN_W = (N*K > 1 ? $clog2(N*K+1) : 1),
+    parameter integer PACKED_INGRESS = 0
 ) (
     input  wire                         clk,
     input  wire                         resetb,
@@ -61,8 +62,8 @@ module tito_systolic_double_buffered_burst_command_accelerator #(
     wire mem_wr_buffer = burst_active ? burst_buffer_q : burst_buffer;
 
     assign burst_start_ready = !burst_active && mem_wr_ready && !cmd_start;
-    assign data_ready = burst_active && mem_wr_ready && !packed_data_valid;
-    assign packed_data_ready = burst_active && pack_wr_ready && !data_valid;
+    assign data_ready = burst_active && mem_wr_ready && (!PACKED_INGRESS || !packed_data_valid);
+    assign packed_data_ready = PACKED_INGRESS && burst_active && pack_wr_ready && !data_valid;
     assign mem_wr_en = data_valid && data_ready;
     assign pack_wr_en = packed_data_valid && packed_data_ready;
     assign packed_handshake = pack_wr_en;
