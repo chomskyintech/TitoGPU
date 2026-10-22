@@ -22,7 +22,9 @@ module tb_tito_systolic_axi4lite_system;
  integer mem_gap=2,r_gap_count=0;
  integer aw_stall_cycles=0,w_stall_cycles=0,ar_stall_cycles=0,r_stall_cycles=0,b_stall_cycles=0,r_gap_idle_cycles=0;
  integer internal_op_start_cycle=-1,internal_op_done_cycle=-1,internal_op_cycles=0;
- reg internal_op_started=0;
+ integer compute_ar_handshakes=0,compute_r_beats=0,compute_r_gap_idle=0,compute_r_stalls=0;
+ integer wb_aw_handshakes=0,wb_w_beats=0,wb_b_responses=0,wb_w_stalls=0,wb_b_wait_cycles=0;
+ reg internal_op_started=0,wb_perf_started=0;
  reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
  reg [ADDR_W+ID_W+13-1:0] prev_aw_payload,prev_ar_payload;
  reg [31:0] prev_wdata,prev_rdata;
@@ -50,16 +52,37 @@ module tb_tito_systolic_axi4lite_system;
    internal_op_start_cycle=-1;
    internal_op_done_cycle=-1;
    internal_op_cycles=0;
-   internal_op_started=0;
+   internal_op_started=0; wb_perf_started=0;
+   compute_ar_handshakes=0; compute_r_beats=0; compute_r_gap_idle=0; compute_r_stalls=0;
+   wb_aw_handshakes=0; wb_w_beats=0; wb_b_responses=0; wb_w_stalls=0; wb_b_wait_cycles=0;
   end else begin
    if(dut.op_start) begin
     internal_op_start_cycle=bus_cycle;
     internal_op_started=1;
+    compute_ar_handshakes=0; compute_r_beats=0; compute_r_gap_idle=0; compute_r_stalls=0;
+   end
+   if(dut.op_busy) begin
+    if(arvalid_m && arready_m_q) compute_ar_handshakes=compute_ar_handshakes+1;
+    if(rvalid_m_q && rready_m) compute_r_beats=compute_r_beats+1;
+    if(rd_active && !rvalid_m_q && r_gap_count>0) compute_r_gap_idle=compute_r_gap_idle+1;
+    if(rvalid_m_q && !rready_m) compute_r_stalls=compute_r_stalls+1;
+   end
+   if(dut.wb_start) begin
+    wb_perf_started=1;
+    wb_aw_handshakes=0; wb_w_beats=0; wb_b_responses=0; wb_w_stalls=0; wb_b_wait_cycles=0;
+   end
+   if(dut.wb_busy || dut.wb_start) begin
+    if(awvalid_m && awready_m) wb_aw_handshakes=wb_aw_handshakes+1;
+    if(wvalid_m && wready_m) wb_w_beats=wb_w_beats+1;
+    if(bvalid_m_q && bready_m) wb_b_responses=wb_b_responses+1;
+    if(wvalid_m && !wready_m) wb_w_stalls=wb_w_stalls+1;
+    if(!wvalid_m && !awvalid_m && !bvalid_m_q) wb_b_wait_cycles=wb_b_wait_cycles+1;
    end
    if(dut.op_done && internal_op_started) begin
     internal_op_done_cycle=bus_cycle;
     internal_op_cycles=internal_op_done_cycle-internal_op_start_cycle;
     $display("PERF-INTERNAL: accelerator op_start-to-op_done latency=%0d AXI memory-model cycles",internal_op_cycles);
+    $display("PERF-COMPUTE-PHASE: AR handshakes=%0d R beats=%0d R-gap-idle=%0d R-stalls=%0d cycles",compute_ar_handshakes,compute_r_beats,compute_r_gap_idle,compute_r_stalls);
     internal_op_started=0;
    end
   end
@@ -218,6 +241,7 @@ module tb_tito_systolic_axi4lite_system;
   if(!status[9] || status[10]) $fatal(1,"writeback did not complete successfully, STATUS=%h",status);
   writeback_observed_cycles=bus_cycle-phase_start_cycle;
   $display("PERF: software-observed writeback command-to-status latency=%0d AXI memory-model cycles",writeback_observed_cycles);
+  $display("PERF-WRITEBACK-PHASE: AW handshakes=%0d W beats=%0d B responses=%0d W-stalls=%0d non-channel-active cycles=%0d",wb_aw_handshakes,wb_w_beats,wb_b_responses,wb_w_stalls,wb_b_wait_cycles);
   for(i=0;i<16;i=i+1) begin
    if({mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]} !== (i*2+11))
     $fatal(1,"multi-tile result mismatch at word %0d: expected %0d got %h%h%h%h",i,(i*2+11),mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]);
