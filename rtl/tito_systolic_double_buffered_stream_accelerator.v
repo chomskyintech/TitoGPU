@@ -20,6 +20,12 @@ module tito_systolic_double_buffered_stream_accelerator #(
     input  wire                       wr_bank, // 0 = A, 1 = B
     input  wire [ADDR_W-1:0]          wr_addr,
     input  wire [DATA_W-1:0]          wr_data,
+    input  wire                       pack_wr_en,
+    input  wire                       pack_wr_buffer,
+    input  wire                       pack_wr_bank,
+    input  wire [ADDR_W-1:0]          pack_wr_base,
+    input  wire [4*DATA_W-1:0]        pack_wr_data,
+    input  wire [3:0]                 pack_wr_mask,
     input  wire                       start,
     output wire [N*N*ACC_W-1:0]       accum_out,
     output wire                       busy,
@@ -82,8 +88,8 @@ module tito_systolic_double_buffered_stream_accelerator #(
     ) scratchpad (
         .clk(clk), .resetb(resetb),
         .wr_en(wr_en), .wr_buffer(wr_buffer), .wr_bank(wr_bank), .wr_addr(wr_addr), .wr_data(wr_data),
-        .pack_wr_en(1'b0), .pack_wr_buffer(1'b0), .pack_wr_bank(1'b0),
-        .pack_wr_base({ADDR_W{1'b0}}), .pack_wr_data({(4*DATA_W){1'b0}}), .pack_wr_mask(4'b0000),
+        .pack_wr_en(pack_wr_en), .pack_wr_buffer(pack_wr_buffer), .pack_wr_bank(pack_wr_bank),
+        .pack_wr_base(pack_wr_base), .pack_wr_data(pack_wr_data), .pack_wr_mask(pack_wr_mask),
         .rd_en(rd_en), .rd_buffer(rd_buffer), .a_rd_addr(a_rd_addr), .b_rd_addr(b_rd_addr),
         .a_rd_data(a_rd_data), .b_rd_data(b_rd_data)
     );
