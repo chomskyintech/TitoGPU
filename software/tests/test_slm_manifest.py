@@ -46,7 +46,7 @@ class OperatorManifestTests(unittest.TestCase):
     def test_quantization_is_not_misrepresented_as_implemented(self):
         conventions = self.manifest["tensor_conventions"]
         self.assertEqual(conventions["reference_dtype"], "python_float")
-        self.assertEqual(conventions["quantization"], "not_defined_yet")
+        self.assertEqual(conventions["quantization"], "symmetric_per_output_channel_weights; per_tensor_activations_with_explicit_scale")
         self.assertEqual(
             self.manifest["status"],
             "reference_only_hardware_mapping_not_implemented",
