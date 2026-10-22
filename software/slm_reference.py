@@ -143,10 +143,10 @@ class TinyTransformer:
                     for i in range(lo, hi):
                         attended[t][i] += probs[offset] * values[j][i]
 
-        after_attn = [
-            [states[t][i] + self._linear(attended[t], self.wo, self.bo)[i] for i in range(d)]
-            for t in range(len(states))
-        ]
+        after_attn = []
+        for t, state in enumerate(states):
+            projected = self._linear(attended[t], self.wo, self.bo)
+            after_attn.append([state[i] + projected[i] for i in range(d)])
 
         # Pre-normalised feed-forward sublayer with SiLU activation.
         norm2 = [self._layer_norm(x, self.gamma2, self.beta2) for x in after_attn]
