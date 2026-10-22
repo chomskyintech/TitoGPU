@@ -75,6 +75,10 @@ module tb_tito_systolic_axi4lite_system;
      $display("TRACE-AR: cycle=%0d addr=%h len=%0d reader_state=%0d tile_index=%0d",bus_cycle,araddr_m,arlen,dut.accel.frontend.state,dut.accel.frontend.tile_index);
     if(rvalid_m_q && rready_m && rlast_q)
      $display("TRACE-RLAST: cycle=%0d addr=%h reader_state=%0d tile_index=%0d tiled_state=%0d load_index=%0d compute_index=%0d",bus_cycle,rd_base,dut.accel.frontend.state,dut.accel.frontend.tile_index,dut.accel.frontend.tiled_core.state,dut.accel.frontend.tiled_core.load_index,dut.accel.frontend.tiled_core.compute_index);
+    if(dut.accel.frontend.tiled_core.burst_done)
+     $display("TRACE-LOAD-DONE: cycle=%0d bank=%0d load_index=%0d a_loaded=%b b_loaded=%b pair_loaded_now=%b reader_state=%0d",bus_cycle,dut.accel.frontend.tiled_core.active_burst_bank,dut.accel.frontend.tiled_core.load_index,dut.accel.frontend.tiled_core.a_loaded,dut.accel.frontend.tiled_core.b_loaded,dut.accel.frontend.tiled_core.pair_loaded_now,dut.accel.frontend.state);
+    if(dut.accel.frontend.tiled_core.pair_loaded_now)
+     $display("TRACE-PAIR-READY: cycle=%0d load_index=%0d compute_index=%0d compute_done_q=%b core_done=%b next_ready_q=%b reader_state=%0d",bus_cycle,dut.accel.frontend.tiled_core.load_index,dut.accel.frontend.tiled_core.compute_index,dut.accel.frontend.tiled_core.compute_done_q,dut.accel.frontend.tiled_core.core_done,dut.accel.frontend.tiled_core.next_ready_q,dut.accel.frontend.state);
     if(dut.accel.frontend.tiled_core.cmd_start)
      $display("TRACE-COMPUTE-START: cycle=%0d tile=%0d buffer=%0d tiled_state=%0d",bus_cycle,dut.accel.frontend.tiled_core.compute_index,dut.accel.frontend.tiled_core.cmd_buffer_q,dut.accel.frontend.tiled_core.state);
     if(dut.accel.frontend.tiled_core.core_done)
