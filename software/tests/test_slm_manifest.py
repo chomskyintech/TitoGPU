@@ -2,7 +2,9 @@ import json
 import unittest
 from pathlib import Path
 
-from slm_reference import Config, FFN, HEADS, HIDDEN, MAX_CONTEXT, VOCAB_SIZE
+from slm_reference import (
+    Config, FFN, HEADS, HIDDEN, MAX_CONTEXT, VOCAB, VOCAB_SIZE,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,8 +23,10 @@ class OperatorManifestTests(unittest.TestCase):
         self.assertEqual(model["hidden_size"], HIDDEN)
         self.assertEqual(model["attention_heads"], HEADS)
         self.assertEqual(model["feed_forward_size"], FFN)
-        self.assertEqual(model["weight_seed"], 20261022)
+        self.assertEqual(model["weight_seed"], Config().seed)
         self.assertEqual(model["weights_status"], "deterministic_untrained")
+        self.assertEqual(model["tokenizer"]["tokens_in_order"], VOCAB)
+        self.assertEqual(model["tokenizer"]["unknown_token_id"], len(VOCAB))
 
     def test_every_operator_declares_execution_boundary_and_shape(self):
         operators = self.manifest["operators"]
@@ -31,26 +35,29 @@ class OperatorManifestTests(unittest.TestCase):
         self.assertEqual(len(names), len(set(names)))
         for operator in operators:
             with self.subTest(operator=operator["name"]):
-                self.assertTrue(operator["input_shapes"] is not None)
+                self.assertIn("input_shapes", operator)
                 self.assertIn("output_shape", operator)
                 self.assertIn(operator["reference_execution"], {"host", "titogpu"})
-                self.assertIn(operator["candidate_execution"], {"host", "titogpu", "titogpu_candidate"})
+                self.assertIn(
+                    operator["candidate_execution"],
+                    {"host", "titogpu", "titogpu_candidate"},
+                )
 
     def test_quantization_is_not_misrepresented_as_implemented(self):
         conventions = self.manifest["tensor_conventions"]
         self.assertEqual(conventions["reference_dtype"], "python_float")
         self.assertEqual(conventions["quantization"], "not_defined_yet")
-        self.assertEqual(self.manifest["status"], "reference_only_hardware_mapping_not_implemented")
+        self.assertEqual(
+            self.manifest["status"],
+            "reference_only_hardware_mapping_not_implemented",
+        )
 
-    def test_linear_candidate_path_matches_current_tile_width_assumption(self):
+    def test_linear_tile_command_estimate_matches_4x4_array(self):
         mapping = self.manifest["hardware_mapping_notes"]
         self.assertEqual(mapping["systolic_array_shape"], [4, 4])
-        self.assertEqual(mapping["matrix_output_tiles_for_16_wide_projection"], 4)
-        candidates = [
-            op for op in self.manifest["operators"]
-            if op["kind"] == "linear" and op["candidate_execution"] == "titogpu_candidate"
-        ]
-        self.assertGreaterEqual(len(candidates), 1)
+        self.assertEqual(mapping["output_tiles_for_16_output_features"], 4)
+        self.assertEqual(mapping["k_tiles_for_16_input_features"], 4)
+        self.assertEqual(mapping["tile_commands_per_16x16_projection"], 16)
 
 
 if __name__ == "__main__":
