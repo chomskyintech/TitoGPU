@@ -23,7 +23,7 @@ module tb_tito_systolic_axi4lite_system;
  integer aw_stall_cycles=0,w_stall_cycles=0,ar_stall_cycles=0,r_stall_cycles=0,b_stall_cycles=0,r_gap_idle_cycles=0;
  integer internal_op_start_cycle=-1,internal_op_done_cycle=-1,internal_op_cycles=0;
  integer compute_ar_handshakes=0,compute_r_beats=0,compute_r_gap_idle=0,compute_r_stalls=0;
- integer compute_core_busy_cycles=0,compute_op_idle_cycles=0;
+ integer compute_core_busy_cycles=0,compute_noncore_busy_cycles=0;
  integer wb_aw_handshakes=0,wb_w_beats=0,wb_b_responses=0,wb_w_stalls=0,wb_b_wait_cycles=0;
  reg internal_op_started=0,wb_perf_started=0;
  reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
@@ -55,7 +55,7 @@ module tb_tito_systolic_axi4lite_system;
    internal_op_cycles=0;
    internal_op_started=0; wb_perf_started=0;
    compute_ar_handshakes=0; compute_r_beats=0; compute_r_gap_idle=0; compute_r_stalls=0;
-   compute_core_busy_cycles=0; compute_op_idle_cycles=0;
+   compute_core_busy_cycles=0; compute_noncore_busy_cycles=0;
    wb_aw_handshakes=0; wb_w_beats=0; wb_b_responses=0; wb_w_stalls=0; wb_b_wait_cycles=0;
   end else begin
    if(dut.op_start) begin
@@ -65,8 +65,8 @@ module tb_tito_systolic_axi4lite_system;
     compute_core_busy_cycles=0; compute_op_idle_cycles=0;
    end
    if(dut.op_busy) begin
-    if(dut.accel.frontend.local_op_busy) compute_core_busy_cycles=compute_core_busy_cycles+1;
-    else compute_op_idle_cycles=compute_op_idle_cycles+1;
+    if(dut.accel.frontend.tiled_core.burst_core.command_core.compute_core.busy) compute_core_busy_cycles=compute_core_busy_cycles+1;
+    else compute_noncore_busy_cycles=compute_noncore_busy_cycles+1;
     if(arvalid_m && arready_m_q) compute_ar_handshakes=compute_ar_handshakes+1;
     if(rvalid_m_q && rready_m) compute_r_beats=compute_r_beats+1;
     if(rd_active && !rvalid_m_q && r_gap_count>0) compute_r_gap_idle=compute_r_gap_idle+1;
@@ -87,7 +87,7 @@ module tb_tito_systolic_axi4lite_system;
     internal_op_done_cycle=bus_cycle;
     internal_op_cycles=internal_op_done_cycle-internal_op_start_cycle;
     $display("PERF-INTERNAL: accelerator op_start-to-op_done latency=%0d AXI memory-model cycles",internal_op_cycles);
-    $display("PERF-COMPUTE-PHASE: core-busy=%0d op-idle=%0d cycles; AR handshakes=%0d R beats=%0d R-gap-idle=%0d R-stalls=%0d cycles",compute_core_busy_cycles,compute_op_idle_cycles,compute_ar_handshakes,compute_r_beats,compute_r_gap_idle,compute_r_stalls);
+    $display("PERF-COMPUTE-PHASE: MAC-core-busy=%0d non-core-operation=%0d cycles; AR handshakes=%0d R beats=%0d R-gap-idle=%0d R-stalls=%0d cycles",compute_core_busy_cycles,compute_op_idle_cycles,compute_ar_handshakes,compute_r_beats,compute_r_gap_idle,compute_r_stalls);
     internal_op_started=0;
    end
   end
