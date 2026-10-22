@@ -13,7 +13,8 @@ module tito_systolic_double_buffered_dma_reader #(
     parameter integer MEM_ADDR_W = (N*K > 1 ? $clog2(N*K) : 1),
     parameter integer RESULT_ADDR_W = (N*N > 1 ? $clog2(N*N) : 1),
     parameter integer BURST_LEN_W = (N*K > 1 ? $clog2(N*K+1) : 1),
-    parameter integer TILE_COUNT_W = 8
+    parameter integer TILE_COUNT_W = 8,
+    parameter integer PACKED_INGRESS = 0
 ) (
     input  wire                         clk,
     input  wire                         resetb,
@@ -35,6 +36,11 @@ module tito_systolic_double_buffered_dma_reader #(
     input  wire [DATA_W-1:0]            rd_data,
     input  wire                         rd_data_last,
     input  wire                         rd_error,
+    input  wire                         packed_data_valid,
+    output wire                         packed_data_ready,
+    input  wire [4*DATA_W-1:0]          packed_data,
+    input  wire [3:0]                   packed_data_mask,
+    input  wire                         packed_data_last,
 
     input  wire                         result_rd_en,
     input  wire [RESULT_ADDR_W-1:0]     result_rd_addr,
@@ -64,6 +70,9 @@ module tito_systolic_double_buffered_dma_reader #(
     wire burst_desc_ready;
     wire local_data_ready;
     wire local_data_valid;
+    wire local_packed_valid;
+    wire local_packed_ready;
+    wire [2:0] packed_lane_count;
     wire local_op_busy;
     wire local_op_done;
     wire local_op_error;
@@ -72,6 +81,10 @@ module tito_systolic_double_buffered_dma_reader #(
     assign op_busy = (state != ST_IDLE) && (state != ST_DONE) && (state != ST_ERROR);
     assign rd_data_ready = ((state == ST_A_DATA) || (state == ST_B_DATA)) && local_data_ready;
     assign local_data_valid = rd_data_valid && ((state == ST_A_DATA) || (state == ST_B_DATA));
+    assign local_packed_valid = packed_data_valid && ((state == ST_A_DATA) || (state == ST_B_DATA));
+    assign packed_data_ready = PACKED_INGRESS && ((state == ST_A_DATA) || (state == ST_B_DATA)) && local_packed_ready;
+    assign packed_lane_count = {2'b0,packed_data_mask[0]} + {2'b0,packed_data_mask[1]} +
+                               {2'b0,packed_data_mask[2]} + {2'b0,packed_data_mask[3]};
     // Keep the local core reset after a fatal protocol/memory error. Recovery is
     // explicit: external reset is required, so a partial burst cannot remain live.
     assign core_resetb = resetb && (state != ST_ERROR);
@@ -79,7 +92,7 @@ module tito_systolic_double_buffered_dma_reader #(
     tito_systolic_double_buffered_tiled_burst_accelerator #(
         .N(N), .K(K), .DATA_W(DATA_W), .ACC_W(ACC_W),
         .MEM_ADDR_W(MEM_ADDR_W), .RESULT_ADDR_W(RESULT_ADDR_W),
-        .BURST_LEN_W(BURST_LEN_W), .TILE_COUNT_W(TILE_COUNT_W)
+        .BURST_LEN_W(BURST_LEN_W), .TILE_COUNT_W(TILE_COUNT_W), .PACKED_INGRESS(PACKED_INGRESS)
     ) tiled_core (
         .clk(clk), .resetb(core_resetb),
         .op_start(op_start_internal), .op_tile_count(tile_count_q),
@@ -88,6 +101,8 @@ module tito_systolic_double_buffered_dma_reader #(
         .burst_bank(burst_bank), .burst_base_addr(burst_base),
         .burst_len(burst_len), .data_valid(local_data_valid),
         .data_ready(local_data_ready), .data(rd_data),
+        .packed_data_valid(local_packed_valid), .packed_data_ready(local_packed_ready),
+        .packed_data(packed_data), .packed_data_mask(packed_data_mask),
         .result_rd_en(result_rd_en), .result_rd_addr(result_rd_addr),
         .result_rd_data(result_rd_data), .result_rd_valid(result_rd_valid)
     );
@@ -169,7 +184,19 @@ module tito_systolic_double_buffered_dma_reader #(
                         end
                     end
                     ST_A_DATA: begin
-                        if (rd_data_valid && rd_data_ready) begin
+                        if (PACKED_INGRESS) begin
+                            if (packed_data_valid && packed_data_ready) begin
+                                if ((packed_lane_count == 0) ||
+                                    (packed_data_last != (beat_count + packed_lane_count >= TILE_BEATS))) begin
+                                    state <= ST_ERROR;
+                                    op_error <= 1'b1;
+                                end else if (packed_data_last) begin
+                                    state <= ST_B_DESC;
+                                end else begin
+                                    beat_count <= beat_count + packed_lane_count;
+                                end
+                            end
+                        end else if (rd_data_valid && rd_data_ready) begin
                             if (rd_data_last != expected_last) begin
                                 state <= ST_ERROR;
                                 op_error <= 1'b1;
@@ -201,7 +228,19 @@ module tito_systolic_double_buffered_dma_reader #(
                         end
                     end
                     ST_B_DATA: begin
-                        if (rd_data_valid && rd_data_ready) begin
+                        if (PACKED_INGRESS) begin
+                            if (packed_data_valid && packed_data_ready) begin
+                                if ((packed_lane_count == 0) ||
+                                    (packed_data_last != (beat_count + packed_lane_count >= TILE_BEATS))) begin
+                                    state <= ST_ERROR;
+                                    op_error <= 1'b1;
+                                end else if (packed_data_last) begin
+                                    state <= ST_NEXT_TILE;
+                                end else begin
+                                    beat_count <= beat_count + packed_lane_count;
+                                end
+                            end
+                        end else if (rd_data_valid && rd_data_ready) begin
                             if (rd_data_last != expected_last) begin
                                 state <= ST_ERROR;
                                 op_error <= 1'b1;
