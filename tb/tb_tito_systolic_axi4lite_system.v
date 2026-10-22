@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 `default_nettype none
-module tb_tito_systolic_axi4lite_system;
+module tb_tito_systolic_axi4lite_system #(parameter integer PACKED_INGRESS=0);
  localparam ADDR_W=32, AXI_DATA_W=32, ID_W=2;
  reg clk=0, resetb=0;
  reg [ADDR_W-1:0] awaddr=0, araddr=0; reg awvalid=0,wvalid=0,bready=0,arvalid=0,rready=0;
@@ -36,7 +36,7 @@ module tb_tito_systolic_axi4lite_system;
  assign bvalid_m=bvalid_m_q; assign arready_m=arready_m_q; assign rvalid_m=rvalid_m_q;
  assign bresp_m=bresp_m_q; assign rresp_m=rresp_m_q; assign rid=rid_q; assign rdata_m=rdata_m_q; assign rlast=rlast_q;
  always #5 clk=~clk;
- tito_systolic_axi4lite_system #(.ADDR_W(ADDR_W),.AXI_DATA_W(AXI_DATA_W),.ACC_W(32),.ID_W(ID_W)) dut(
+ tito_systolic_axi4lite_system #(.ADDR_W(ADDR_W),.AXI_DATA_W(AXI_DATA_W),.ACC_W(32),.ID_W(ID_W),.PACKED_INGRESS(PACKED_INGRESS)) dut(
  .clk(clk),.resetb(resetb),.s_axi_awaddr(awaddr),.s_axi_awvalid(awvalid),.s_axi_awready(awready),
  .s_axi_wdata(wdata),.s_axi_wstrb(wstrb),.s_axi_wvalid(wvalid),.s_axi_wready(wready),.s_axi_bresp(bresp),.s_axi_bvalid(bvalid),.s_axi_bready(bready),
  .s_axi_araddr(araddr),.s_axi_arvalid(arvalid),.s_axi_arready(arready),.s_axi_rdata(rdata),.s_axi_rresp(rresp),.s_axi_rvalid(rvalid),.s_axi_rready(rready),
