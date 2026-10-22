@@ -46,7 +46,7 @@ The lower-level reference run is 137 cycles at `MEM_GAP=0`, 147 cycles at `MEM_G
 
 ## Phase-level measurement
 
-The software-facing testbench tracks input-read address handshakes, accepted read beats, response-gap idle cycles and read stalls while the compute operation is busy. It also samples the local tiled core's busy signal to separate core-active cycles from outer-operation cycles. During writeback it tracks accepted write addresses, write beats, write responses, write stalls and cycles with no active AW/W/B channel. These are simulation-only counters scoped to the named phase; they are not hardware performance registers.
+The software-facing testbench tracks input-read address handshakes, accepted read beats, response-gap idle cycles and read stalls while the operation is active. It now samples the actual MAC compute-core busy signal (`...command_core.compute_core.busy`) separately from the outer tiled-operation controller. Do not confuse the DMA reader's `local_op_busy` signal with MAC execution time: it spans loading and coordination as well as compute. The corrected MAC-core measurements are pending CI. During writeback it tracks accepted write addresses, write beats, write responses, write stalls and cycles with no active AW/W/B channel. These are simulation-only counters scoped to the named phase; they are not hardware performance registers.
 
 ## Key takeaway
 
