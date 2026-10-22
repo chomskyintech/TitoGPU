@@ -20,9 +20,9 @@ The done bits are event latches, not the raw one-cycle hardware pulses. A comman
 
 ## Integration test
 
-`tb/tb_tito_systolic_axi4lite_system.v` models byte-addressed external memory and drives the subsystem exclusively through AXI4-Lite for configuration and commands. It loads two K tiles through the AXI4-Lite-configured system: both A tiles are identity matrices, B0 contains 1–16, and B1 contains 10–25. It verifies the four input bursts at A0/B0/A1/B1 addresses, four-beat read burst lengths, and all 16 accumulated 32-bit results (11, 13, …, 41). The memory model also checks write burst alignment, 4 KiB boundaries, and WLAST placement. It then injects a one-shot AXI SLVERR on writeback and checks that STATUS bit 10 and ERROR_CODE value 6 are visible to software, followed by W1C clearing of the error latch/code.
+`tb/tb_tito_systolic_axi4lite_system.v` models byte-addressed external memory and drives the subsystem exclusively through AXI4-Lite for configuration and commands. It loads two K tiles through the AXI4-Lite-configured system: both A tiles are identity matrices, B0 contains 1–16, and B1 contains 10–25. It verifies the four input bursts at A0/B0/A1/B1 addresses, four-beat read burst lengths, and all 16 accumulated 32-bit results (11, 13, …, 41). The memory model inserts deterministic AWREADY/WREADY/ARREADY gaps and R-channel response gaps, while checking AXI VALID/payload stability under backpressure. It also checks write burst alignment, 4 KiB boundaries, and WLAST placement. It then injects a one-shot AXI SLVERR on writeback and checks that STATUS bit 10 and ERROR_CODE value 6 are visible to software, followed by W1C clearing of the error latch/code.
 
-The single-tile and software-visible error-handling checks passed in [GitHub Actions run 39547431080](https://github.com/chomskyintech/TitoGPU/actions/runs/39547431080). The new two-tile accumulation and explicit burst checks are awaiting CI verification.
+The single-tile and software-visible error-handling checks passed in [GitHub Actions run 39547431080](https://github.com/chomskyintech/TitoGPU/actions/runs/39547431080). The two-tile accumulation, explicit burst checks, and deterministic backpressure assertions are included in the current regression; verify the latest workflow run before treating this revision as passing.
 
 Run locally:
 
@@ -35,7 +35,7 @@ make synth-system
 
 - This is a single AXI4-Lite manager-facing control interface and one AXI4 memory-master interface; no interconnect or multi-tenant arbitration is included.
 - The default datapath is signed INT8 operands and 32-bit accumulation/result words. The current top-level checks the 32-bit AXI data/accumulator configuration.
-- The AXI-Lite end-to-end test now targets two K tiles. It checks four input read bursts and the writeback burst's WLAST placement and 4 KiB boundary rule. Dedicated protocol coverage for randomized stalls, all response codes, read-side errors, and maximum burst length remains future work.
+- The AXI-Lite end-to-end test now targets two K tiles. It checks four input read bursts and the writeback burst's WLAST placement and 4 KiB boundary rule. Randomized stalls, all response codes, read-side errors, and maximum burst length remain future work; current backpressure is deterministic and targets channel stability.
 - Generic Yosys synthesis establishes elaboration and generic logic synthesis only. It does not establish placed timing, silicon area, power, or performance per watt.
 
 Related sources:
