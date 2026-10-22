@@ -37,3 +37,22 @@ The key distinction is between **overlap opportunity** and **useful accepted dat
 ## Key takeaway
 
 Double buffering does not guarantee that all memory latency is hidden. It provides a place to load the next tile while the current tile computes; actual benefit depends on request scheduling, response latency, and when the next tile is allowed to launch. The current measurements justify tracing the scheduler before changing it, not assuming a specific RTL bug.
+
+
+## Reading the new `TRACE-*` output
+
+The testbench now prints cycle-level markers, so you can test the scheduling hypothesis directly instead of inferring it from aggregate counters. See the [full-system testbench](../../tb/tb_tito_systolic_axi4lite_system.v) and the [updated performance baseline](../21_performance_baseline.md).
+
+- `TRACE-AR` shows each read burst address and tile index.
+- `TRACE-RLAST` marks the final accepted beat for that burst.
+- `TRACE-COMPUTE-START` and `TRACE-COMPUTE-DONE` bound each tile's compute interval.
+
+On the passing trace regression, tile 0 compute starts at cycle 65, tile 1 A finishes at 87, tile 0 compute completes at 100, tile 1 B finishes at 111, and tile 1 compute starts at 117 for `MEM_GAP=0` and `MEM_GAP=2`. At `MEM_GAP=5`, the corresponding cycles are 77, 105, 112, 135, and 141. That shows the next tile's B load completes after the current compute, followed by a six-cycle interval before the next compute launch. The exact cause of that hand-off should be confirmed by inspecting the RTL state/flag transitions before editing the controller.
+
+### Follow-up exercise
+
+1. Open the trace section of the [performance baseline](../21_performance_baseline.md) and calculate the wait from tile 0 compute completion to tile 1's final input beat.
+2. Inspect how `burst_done`, `a_loaded`, `b_loaded`, `next_ready_q`, `compute_done_q`, and `cmd_start` are updated in the [tiled burst controller](../../rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v).
+3. Explain which wait comes from memory response scheduling and which comes from controller hand-off. Do not equate them.
+4. If changing the controller, preserve the current correctness and AXI protocol checks, and compare the same `MEM_GAP=0/2/5` cases.
+
