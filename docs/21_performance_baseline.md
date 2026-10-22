@@ -24,7 +24,7 @@ From the repository root:
 make sim
 ```
 
-The regression invokes the double-buffered DMA-reader testbench once for each of the three gap settings. The testbench prints the operation cycle count and supporting counters, including compute-busy cycles, compute-idle cycles while the operation is active, memory-active cycles, accepted response beats, request backpressure cycles, and prefetch beats received while compute is busy.
+The regression invokes both the double-buffered DMA-reader testbench and the software-facing AXI-Lite system testbench at each of the three gap settings. The full-system testbench accepts `+MEM_GAP=0`, `+MEM_GAP=2`, and `+MEM_GAP=5` to control idle cycles between accepted AXI R-channel beats; all correctness and protocol checks run for each setting. The testbench prints the operation cycle count and supporting counters, including compute-busy cycles, compute-idle cycles while the operation is active, memory-active cycles, accepted response beats, request backpressure cycles, and prefetch beats received while compute is busy.
 
 To run just this test manually:
 
@@ -50,7 +50,15 @@ The AXI-Lite system testbench also prints two separate metrics:
 - **Compute command-to-status latency:** from just before the AXI-Lite CONTROL start write through the first successful STATUS poll that observes compute done.
 - **Writeback command-to-status latency:** from just before the AXI-Lite writeback start write through the first successful STATUS poll that observes writeback done.
 
-These include AXI-Lite command/response and polling overhead as well as accelerator and memory-model latency. The memory model uses deterministic READY gaps and R-channel response gaps, so these figures describe this testbench configuration only. Latest passing CI run measured **147 AXI memory-model cycles** for compute command-to-status latency and **60 cycles** for writeback command-to-status latency. These values were recorded by the software-facing system testbench in [CI run 39816750924](https://github.com/chomskyintech/TitoGPU/actions/runs/39816750924). They describe the deterministic backpressure configuration used by that test and are not standalone accelerator compute time. They must not be mixed with the lower-level DMA-reader operation-cycle counts above.
+These include AXI-Lite command/response and polling overhead as well as accelerator and memory-model latency. The memory model uses deterministic READY gaps and R-channel response gaps, so these figures describe this testbench configuration only. The first passing run measured **147 cycles** for compute command-to-status latency and **60 cycles** for writeback command-to-status latency. The top-level testbench now sweeps the number of idle cycles inserted between accepted AXI R-channel beats with `+MEM_GAP=N`. The latest full simulation and synthesis regression recorded the following values in [CI run 39817490186](https://github.com/chomskyintech/TitoGPU/actions/runs/39817490186):
+
+| AXI R-channel inter-beat gap | Compute command-to-status | Writeback command-to-status |
+|---:|---:|---:|
+| 0 cycles | 147 cycles | 60 cycles |
+| 2 cycles | 147 cycles | 60 cycles |
+| 5 cycles | 171 cycles | 60 cycles |
+
+The writeback path does not issue input reads in this test, so its latency is unchanged by this R-channel input-response gap. The compute latency remains flat between gaps 0 and 2, then increases by 24 cycles at gap 5. This indicates the current two-tile workload hides the smaller response gap within other work, but the larger gap becomes visible. These are software-observed latencies, not standalone accelerator compute time, and must not be mixed with the lower-level DMA-reader operation-cycle counts above.
 
 ## Interpretation
 
@@ -61,7 +69,7 @@ These include AXI-Lite command/response and polling overhead as well as accelera
 
 ## Next measurements
 
-1. Add a controlled sweep of address-channel stalls and response latency to the AXI-connected system.
-2. Record separate compute, input-transfer, and result-writeback latency.
+1. Add latency and stall counters for AW/W/AR/R/B channels so the test can explain where cycles are spent.
+2. Separate accelerator compute time from software polling and command overhead.
 3. Add larger matrix/tile counts and report useful operations per cycle.
 4. Only after the cycle baseline is stable, use technology-appropriate synthesis and physical implementation flows for area, timing, and power estimates.
