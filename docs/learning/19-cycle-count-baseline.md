@@ -9,6 +9,7 @@ Learn to measure accelerator latency in RTL simulation without confusing a cycle
 - [Cycle-count performance baseline](../21_performance_baseline.md) — workload, baseline numbers, reproduction commands, and limitations.
 - [Double-buffered DMA-reader testbench](../../tb/tb_tito_systolic_double_buffered_dma_reader.v) — cycle counter and supporting performance counters.
 - [Double-buffered DMA-reader RTL](../../rtl/tito_systolic_double_buffered_dma_reader.v) — design being measured.
+- [Software-facing system testbench](../../tb/tb_tito_systolic_axi4lite_system.v) — end-to-end measurements and phase activity counters.
 - [Software-controlled system integration](18-software-controlled-system.md) — end-to-end control and data path context.
 
 ## Concepts
@@ -42,6 +43,10 @@ The lower-level reference run is 137 cycles at `MEM_GAP=0`, 147 cycles at `MEM_G
 3. Explain why the lower-level 147-cycle result and top-level 147-cycle compute result are not interchangeable even though the numbers happen to match.
 4. Propose one change to reduce compute-idle cycles, then rerun the same workload and compare results.
 5. Keep the correctness checks enabled: a faster result is invalid if any matrix output or protocol check fails.
+
+## Phase-level measurement
+
+The software-facing testbench now tracks input-read address handshakes, accepted read beats, response-gap idle cycles and read stalls while the compute operation is busy. During writeback it tracks accepted write addresses, write beats, write responses, write stalls and cycles with no active AW/W/B channel. These are simulation-only counters scoped to the named phase; they are not hardware performance registers. Confirm their values from a passing CI run before using them to justify an optimization.
 
 ## Key takeaway
 
