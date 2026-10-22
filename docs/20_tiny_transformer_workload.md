@@ -1,6 +1,6 @@
 # Tiny Transformer Workload Specification (M1)
 
-**Status:** Initial workload proposal; software-reference implementation is the next task.  
+**Status:** Workload proposal committed; deterministic software reference scaffold and smoke tests are now in the repository. The weights are intentionally untrained, and CI verification is pending.  
 **Roadmap:** [SLM prototype roadmap](roadmap_slm_prototype.md)  
 **Hardware starting point:** [TitoGPU README](../README.md), [systolic MAC prototype](07_tito_systolic_mac_prototype.md), [K-dimension tiling contract](08_k_dimension_tiling.md), [AXI-Lite software control](18-software-controlled-system.md)  
 **Working branch:** `feature/tito-systolic-mac`
@@ -76,6 +76,15 @@ Before implementing a custom operator or changing RTL, verify:
 - the practical route to load weights and read results;
 - whether the existing AXI-connected system can be driven by a testbench without a CPU.
 
+## Current software scaffold
+
+- [Reference implementation](../software/slm_reference.py) — pure Python, no third-party runtime dependencies; fixed seed and configuration; currently uses untrained deterministic weights.
+- [Reference smoke tests](../software/tests/test_slm_reference.py) — token mapping, finite logits, deterministic generation, context validation and invalid configuration.
+- Run locally from the repository root: `PYTHONPATH=software python3 -m unittest discover -s software/tests -v`.
+- Demo: `PYTHONPATH=software python3 software/slm_reference.py tito --new-tokens 8`.
+
+This is only the first numerical plumbing scaffold. It does not train a language model, quantise weights, call TitoGPU RTL, or prove that the generated text is useful. Those are separate tasks.
+
 ## M1 acceptance criteria
 
 M1 is complete only when:
@@ -88,4 +97,4 @@ M1 is complete only when:
 
 ## Next implementation task
 
-Create the reference model and workload manifest before writing transformer-specific RTL. In parallel, audit the accelerator test/command interface to decide how the host harness will invoke 4×4 matrix tiles and compare results.
+Run the new reference smoke tests in CI and fix any failures. Then add a deterministic, project-authored training corpus and training/export path, while auditing the accelerator test/command interface to decide how the host harness will invoke 4×4 matrix tiles and compare results. Do not begin transformer-specific RTL until the model's operator and numerical contracts are frozen.
