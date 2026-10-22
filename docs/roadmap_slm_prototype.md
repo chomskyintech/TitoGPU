@@ -116,7 +116,7 @@ Tasks:
 
 ## Current execution order
 
-1. **Do M0 and M1 first.** Audit the actual current RTL/tests and establish the baseline while defining the tiny transformer.
+1. **Continue M0 and M1.** Confirm the full current-head CI conclusion, finish the coverage-gap audit, and evolve the software scaffold into a trained, deterministic reference while defining the host-to-RTL tile harness.
 2. Complete M2 using existing hardware before adding specialised operators.
 3. Complete M3 and M4 with host fallback where needed; prove end-to-end correctness.
 4. Use M5 measurements to choose hardware optimisation work.
@@ -130,8 +130,8 @@ Update this table only with evidence from the repository and verified runs.
 
 | Milestone | Status | Evidence / next action |
 |---|---|---|
-| M0 — Current baseline | In progress — latest checked RTL regression and configured synthesis jobs passed before the documentation-only workload-spec commits; coverage audit underway | CI run #371 on commit `28ce8ce85ced4d86410018e1f10cc8cbda4f6c61`; review remaining shape/protocol gaps and check CI for the current head |
-| M1 — Tiny transformer specification/reference | In progress — initial workload spec written; software reference not implemented yet | See [workload specification](20_tiny_transformer_workload.md); implement deterministic reference and manifest |
+| M0 — Current baseline | In progress — simulation regression, tiny-transformer unit tests, AXI synthesis, writeback synthesis and control synthesis passed in CI; full system synthesis was still running at last inspection. Coverage audit is underway. | Latest inspected job: [GitHub Actions](https://github.com/chomskyintech/TitoGPU/actions/runs/39861553574), commit `590e8bd90cda837f6f69c346cfc859325ab1b295`. Existing MAC tests include signed INT8 endpoints; K-tiling tests cover K_TOTAL=9 and repeated operations. Core matrix tests remain largely fixed-size, and no RTL-to-transformer integration exists yet. |
+| M1 — Tiny transformer specification/reference | In progress — workload specification and deterministic, dependency-free software reference scaffold are committed; six reference smoke tests passed in CI. Weights are untrained and the model is not connected to RTL. | See [workload specification](20_tiny_transformer_workload.md), [reference model](../software/slm_reference.py), and [tests](../software/tests/test_slm_reference.py). Next: freeze training/weight-export semantics and build the host-to-RTL tile harness. |
 | M2 — Linear layers on TitoGPU | Not started | Map tensor layouts and compare results against reference |
 | M3 — Complete transformer layer | Not started | Add missing operators and intermediate comparisons |
 | M4 — End-to-end token generation | Not started | KV cache, embeddings, logits and deterministic decoding |
