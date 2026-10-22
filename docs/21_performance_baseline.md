@@ -93,15 +93,7 @@ These counters help distinguish memory input service from output writeback activ
 | 2 cycles | 4 | 16 | 24 | 12 | 1 | 16 | 1 | 4 | 32 |
 | 5 cycles | 4 | 16 | 60 | 0 | 1 | 16 | 1 | 3 | 32 |
 
-The passing regression [39830875807](https://github.com/chomskyintech/TitoGPU/actions/runs/39830875807) also measures local core activity during the operation:
-
-| R-channel gap | Internal operation latency | Core-busy cycles | Operation-busy/core-idle cycles |
-|---:|---:|---:|---:|
-| 0 cycles | 140 | 137 | 2 |
-| 2 cycles | 140 | 137 | 2 |
-| 5 cycles | 164 | 161 | 2 |
-
-The monitor samples the local tiled-core `local_op_busy` signal while the outer operation is busy. The two-cycle difference between internal operation latency and the sum of the reported core-busy/idle counts reflects measurement-boundary and sampling-cycle conventions; do not assume these counters must sum exactly to the latency number. The main visible effect at gap 5 is 24 extra operation/core-busy cycles, while the local core-idle count stays at two.
+**Measurement correction:** run [39830875807](https://github.com/chomskyintech/TitoGPU/actions/runs/39830875807) initially labeled the DMA reader's `local_op_busy` interval as core-busy time. That signal actually covers the tiled operation controller, including loading and coordination; it is not the MAC compute core's busy signal. The testbench has been corrected to sample `dut.accel.frontend.tiled_core.burst_core.command_core.compute_core.busy` directly. The corrected MAC-core cycle counts are pending the next passing CI run; do not use the earlier 137/161 values as MAC compute time.
 
 ## Interpretation
 
