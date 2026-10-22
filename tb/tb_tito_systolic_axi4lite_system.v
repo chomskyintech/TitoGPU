@@ -21,6 +21,8 @@ module tb_tito_systolic_axi4lite_system;
  integer i,cycles,read_burst_count,bus_cycle,phase_start_cycle,compute_observed_cycles,writeback_observed_cycles;
  integer mem_gap=2,r_gap_count=0;
  integer aw_stall_cycles=0,w_stall_cycles=0,ar_stall_cycles=0,r_stall_cycles=0,b_stall_cycles=0,r_gap_idle_cycles=0;
+ integer internal_op_start_cycle=-1,internal_op_done_cycle=-1,internal_op_cycles=0;
+ reg internal_op_started=0;
  reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
  reg [ADDR_W+ID_W+13-1:0] prev_aw_payload,prev_ar_payload;
  reg [31:0] prev_wdata,prev_rdata;
@@ -39,6 +41,29 @@ module tb_tito_systolic_axi4lite_system;
  .m_axi_bresp(bresp_m),.m_axi_bvalid(bvalid_m),.m_axi_bready(bready_m),.m_axi_arid(arid),.m_axi_araddr(araddr_m),.m_axi_arlen(arlen),
  .m_axi_arsize(arsize),.m_axi_arburst(arburst),.m_axi_arvalid(arvalid_m),.m_axi_arready(arready_m),.m_axi_rid(rid),.m_axi_rdata(rdata_m),
  .m_axi_rresp(rresp_m),.m_axi_rlast(rlast),.m_axi_rvalid(rvalid_m),.m_axi_rready(rready_m));
+
+ // Simulation-only observation of the accelerator's internal operation boundary.
+ // This deliberately bypasses AXI-Lite polling to separate engine latency from
+ // software-visible command-to-status latency; it is not a software interface.
+ always @(posedge clk or negedge resetb) begin
+  if(!resetb) begin
+   internal_op_start_cycle=-1;
+   internal_op_done_cycle=-1;
+   internal_op_cycles=0;
+   internal_op_started=0;
+  end else begin
+   if(dut.op_start) begin
+    internal_op_start_cycle=bus_cycle;
+    internal_op_started=1;
+   end
+   if(dut.op_done && internal_op_started) begin
+    internal_op_done_cycle=bus_cycle;
+    internal_op_cycles=internal_op_done_cycle-internal_op_start_cycle;
+    $display("PERF-INTERNAL: accelerator op_start-to-op_done latency=%0d AXI memory-model cycles",internal_op_cycles);
+    internal_op_started=0;
+   end
+  end
+ end
 
  // Small byte-addressed memory model. AXI reads return four packed INT8 bytes;
  // writes store the 32-bit accumulator word at the requested byte address.
