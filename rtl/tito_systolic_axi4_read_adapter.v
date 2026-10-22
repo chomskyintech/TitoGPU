@@ -3,7 +3,8 @@
 module tito_systolic_axi4_read_adapter #(
     parameter integer ADDR_W=32, DATA_W=8, AXI_DATA_W=32, LEN_W=8, ID_W=4,
     parameter integer LANES=AXI_DATA_W/DATA_W,
-    parameter integer BYTE_SHIFT=(AXI_DATA_W>=8 ? $clog2(AXI_DATA_W/8) : 0)
+    parameter integer BYTE_SHIFT=(AXI_DATA_W>=8 ? $clog2(AXI_DATA_W/8) : 0),
+    parameter integer PACKED_OUTPUT=0
 ) (
     input wire clk, resetb,
     input wire rd_req_valid, output wire rd_req_ready,
@@ -11,6 +12,9 @@ module tito_systolic_axi4_read_adapter #(
     input wire [LEN_W-1:0] rd_req_len,
     output wire rd_data_valid, input wire rd_data_ready,
     output wire [DATA_W-1:0] rd_data, output wire rd_data_last, rd_error,
+    output wire packed_data_valid, input wire packed_data_ready,
+    output wire [AXI_DATA_W-1:0] packed_data,
+    output wire [LANES-1:0] packed_data_mask, output wire packed_data_last,
     output wire [ID_W-1:0] m_axi_arid,
     output wire [ADDR_W-1:0] m_axi_araddr,
     output wire [7:0] m_axi_arlen, output wire [2:0] m_axi_arsize,
@@ -30,6 +34,10 @@ module tito_systolic_axi4_read_adapter #(
     wire [LEN_W:0] request_beats;
     wire request_bad, request_handshake, r_handshake, logical_handshake;
     wire r_bad, r_last_bad, final_logical_lane;
+    wire packed_handshake;
+    wire [LEN_W:0] logical_remaining;
+    integer lane_i;
+    reg [LANES-1:0] packed_mask_comb;
 
     assign request_beats=(rd_req_len+LANES-1)/LANES;
     assign request_bad=(rd_req_len==0) ||
@@ -47,11 +55,22 @@ module tito_systolic_axi4_read_adapter #(
     assign r_last_bad=(m_axi_rlast!=(axi_beat_count==expected_beats_q-1'b1));
     assign m_axi_rready=read_active && !buffer_valid;
     assign r_handshake=m_axi_rvalid && m_axi_rready;
-    assign rd_data_valid=buffer_valid && !error_pending;
+    assign rd_data_valid=buffer_valid && !error_pending && !PACKED_OUTPUT;
     assign rd_data=buffer_data>>(lane_index*DATA_W);
     assign final_logical_lane=(logical_count==logical_len_q-1'b1);
     assign rd_data_last=final_logical_lane;
     assign logical_handshake=rd_data_valid && rd_data_ready;
+    assign packed_data_valid=buffer_valid && !error_pending && PACKED_OUTPUT;
+    assign packed_data=buffer_data;
+    assign logical_remaining=logical_len_q-logical_count;
+    always @* begin
+      packed_mask_comb={LANES{1'b0}};
+      for(lane_i=0; lane_i<LANES; lane_i=lane_i+1)
+        if(lane_i<logical_remaining) packed_mask_comb[lane_i]=1'b1;
+    end
+    assign packed_data_mask=packed_mask_comb;
+    assign packed_data_last=(logical_remaining<=LANES);
+    assign packed_handshake=packed_data_valid && packed_data_ready;
     assign rd_error=error_pending || (r_handshake && (r_bad || r_last_bad));
 
     always @(posedge clk or negedge resetb) begin
@@ -85,6 +104,12 @@ module tito_systolic_axi4_read_adapter #(
           if(final_logical_lane || lane_index==LANES-1) begin
             buffer_valid<=0; lane_index<=0;
           end else lane_index<=lane_index+1'b1;
+        end
+        if(packed_handshake) begin
+          if(logical_remaining>=LANES) logical_count<=logical_count+LANES;
+          else logical_count<=logical_count+logical_remaining;
+          buffer_valid<=0;
+          lane_index<=0;
         end
       end
     end
