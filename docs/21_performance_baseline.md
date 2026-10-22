@@ -50,7 +50,7 @@ The AXI-Lite system testbench also prints two separate metrics:
 - **Compute command-to-status latency:** from just before the AXI-Lite CONTROL start write through the first successful STATUS poll that observes compute done.
 - **Writeback command-to-status latency:** from just before the AXI-Lite writeback start write through the first successful STATUS poll that observes writeback done.
 
-These include AXI-Lite command/response and polling overhead as well as accelerator and memory-model latency. The memory model uses deterministic READY gaps and R-channel response gaps, so these figures describe this testbench configuration only. The numbers are printed by CI simulation logs; rerun the regression to obtain current measurements. They must not be mixed with the lower-level DMA-reader operation-cycle counts above.
+These include AXI-Lite command/response and polling overhead as well as accelerator and memory-model latency. The memory model uses deterministic READY gaps and R-channel response gaps, so these figures describe this testbench configuration only. Latest passing CI run measured **147 AXI memory-model cycles** for compute command-to-status latency and **60 cycles** for writeback command-to-status latency. These values were recorded by the software-facing system testbench in [CI run 39816750924](https://github.com/chomskyintech/TitoGPU/actions/runs/39816750924). They describe the deterministic backpressure configuration used by that test and are not standalone accelerator compute time. They must not be mixed with the lower-level DMA-reader operation-cycle counts above.
 
 ## Interpretation
 
