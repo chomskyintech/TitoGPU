@@ -9,7 +9,7 @@ from slm_quantization import (
 class QuantizationContractTests(unittest.TestCase):
     def test_activation_quantization_clamps_and_rounds_ties_to_even(self):
         self.assertEqual(
-            quantize_activations([-100.0, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 100.0], 1.0),
+            quantize_activations([-1000.0, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 1000.0], 1.0),
             [INT8_MIN, -2, -2, 0, 0, 2, 2, INT8_MAX],
         )
 
