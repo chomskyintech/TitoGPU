@@ -5,7 +5,8 @@
 **Working branch:** `feature/tito-systolic-mac`  
 **Last reviewed:** 2026-10-22
 
-**Current workload specification:** [Tiny Transformer Workload Specification](20_tiny_transformer_workload.md)
+**Current workload specification:** [Tiny Transformer Workload Specification](20_tiny_transformer_workload.md)  
+**Machine-readable operator contract:** [Operator manifest](../software/slm_operator_manifest.json)
 
 This document is the source of truth for the SLM prototype direction. When resuming work in a new chat, read this file and the current repository state before proposing or making changes. Update this roadmap when a milestone or agreed direction changes; do not silently replace the target.
 
@@ -131,7 +132,7 @@ Update this table only with evidence from the repository and verified runs.
 | Milestone | Status | Evidence / next action |
 |---|---|---|
 | M0 — Current baseline | In progress — full RTL simulation regression, tiny-transformer unit tests and all configured synthesis jobs passed in CI. Coverage audit is underway. | Latest inspected job: [GitHub Actions](https://github.com/chomskyintech/TitoGPU/actions/runs/39861553574), commit `590e8bd90cda837f6f69c346cfc859325ab1b295`. Existing MAC tests include signed INT8 endpoints; K-tiling tests cover K_TOTAL=9 and repeated operations. Core matrix tests remain largely fixed-size, and no RTL-to-transformer integration exists yet. |
-| M1 — Tiny transformer specification/reference | In progress — workload specification and deterministic, dependency-free software reference scaffold are committed; six reference smoke tests passed in CI. Weights are untrained and the model is not connected to RTL. | See [workload specification](20_tiny_transformer_workload.md), [reference model](../software/slm_reference.py), and [tests](../software/tests/test_slm_reference.py). Next: freeze training/weight-export semantics and build the host-to-RTL tile harness. |
+| M1 — Tiny transformer specification/reference | In progress — workload specification, dependency-free reference, machine-readable operator manifest and manifest consistency tests are committed. The original six reference smoke tests passed in CI; the newly added manifest tests await a verified run on the latest commit. Weights are untrained and the model is not connected to RTL. | See [workload specification](20_tiny_transformer_workload.md), [reference model](../software/slm_reference.py), [operator manifest](../software/slm_operator_manifest.json), and [manifest tests](../software/tests/test_slm_manifest.py). Next: freeze quantisation/export semantics and define the host-to-RTL tile harness. |
 | M2 — Linear layers on TitoGPU | Not started | Map tensor layouts and compare results against reference |
 | M3 — Complete transformer layer | Not started | Add missing operators and intermediate comparisons |
 | M4 — End-to-end token generation | Not started | KV cache, embeddings, logits and deterministic decoding |
