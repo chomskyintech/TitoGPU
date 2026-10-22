@@ -2,7 +2,7 @@
 
 ## Status
 
-Investigation complete; **first local RTL slice implemented, system ingress integration pending**. The scratchpad now has a masked four-lane write port and a focused unit test. The AXI read adapter and DMA path still use the original byte-stream interface, so no end-to-end speedup is claimed yet.
+Investigation complete; **packed adapter mode and local packed-write slice implemented, system ingress integration pending**. The scratchpad has a masked four-lane write port, and the AXI read adapter has an opt-in packed-word output mode. Focused tests cover packed lane order, partial final words, backpressure, and the scratchpad byte-write compatibility path. The production DMA/system wrapper still selects byte-stream mode, so no end-to-end speedup is claimed yet.
 
 ## Problem statement
 
@@ -20,7 +20,7 @@ This is a candidate for the current register-array scratchpad model, not a claim
 
 ## Interface and correctness constraints
 
-The local scratchpad interface is now present as `pack_wr_en`, `pack_wr_buffer`, `pack_wr_bank`, `pack_wr_base`, `pack_wr_data`, and `pack_wr_mask`. The legacy byte port remains in place. The current wrapper explicitly ties the new port off, so existing behavior is unchanged. The following system-level contract still must be satisfied before integration:
+The local scratchpad interface is present as `pack_wr_en`, `pack_wr_buffer`, `pack_wr_bank`, `pack_wr_base`, `pack_wr_data`, and `pack_wr_mask`. The AXI read adapter also has `PACKED_OUTPUT=1`, with `packed_data_valid/ready`, `packed_data`, `packed_data_mask`, and `packed_data_last`; its default remains byte-stream mode. The legacy byte port remains in place, and the current production wrapper ties the scratchpad packed port off, so existing behavior is unchanged. The following system-level contract still must be satisfied before integration:
 
 - One accepted AXI R beat creates one packed logical transfer with four ordered 8-bit lanes.
 - The packed transfer remains stable under backpressure until accepted.
@@ -40,7 +40,7 @@ The local scratchpad interface is now present as `pack_wr_en`, `pack_wr_buffer`,
 
 1. Keep the current byte-stream path and tests passing as a reference.
 2. Exercise the local packed port with unit tests for lane order, masks/partial words, and A/B plus buffer addressing; then extend tests for out-of-range addresses and parameter variations.
-3. Add a packed valid/ready interface to the AXI read adapter and carry it through the DMA reader and burst controller.
+3. Carry the adapter's opt-in packed valid/ready interface through the DMA reader, tiled/burst controller, command wrapper, and scratchpad; preserve the byte-stream default.
 4. Compare the resulting scratchpad contents against the existing byte-stream implementation for identical transactions.
 5. Run the two-tile AXI4-Lite end-to-end test at MEM_GAP=0/2/5, including R-channel protocol faults and result reference checks.
 6. Recheck every synthesis job and compare cycle traces and latency against the current baseline.
