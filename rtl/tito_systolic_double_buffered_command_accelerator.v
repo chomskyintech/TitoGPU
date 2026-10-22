@@ -22,6 +22,13 @@ module tito_systolic_double_buffered_command_accelerator #(
     input  wire                         mem_wr_bank, // 0 = A, 1 = B
     input  wire [MEM_ADDR_W-1:0]        mem_wr_addr,
     input  wire [DATA_W-1:0]            mem_wr_data,
+    input  wire                         pack_wr_en,
+    output wire                         pack_wr_ready,
+    input  wire                         pack_wr_buffer,
+    input  wire                         pack_wr_bank,
+    input  wire [MEM_ADDR_W-1:0]        pack_wr_base,
+    input  wire [4*DATA_W-1:0]          pack_wr_data,
+    input  wire [3:0]                   pack_wr_mask,
     input  wire                         cmd_start,
     input  wire                         cmd_accumulate, // 0 = replace outputs; 1 = add this K tile to prior results
     input  wire                         cmd_buffer, // buffer selected for this compute tile
@@ -53,6 +60,7 @@ module tito_systolic_double_buffered_command_accelerator #(
     // During compute/writeback, permit writes only to the inactive tile buffer.
     assign mem_wr_ready = (state == ST_IDLE) || (mem_wr_buffer != compute_buffer_q);
     assign core_wr_en = mem_wr_en && mem_wr_ready;
+    assign pack_wr_ready = mem_wr_ready;
 
     tito_systolic_double_buffered_stream_accelerator #(
         .N(N), .K(K), .DATA_W(DATA_W), .ACC_W(ACC_W),
@@ -61,6 +69,9 @@ module tito_systolic_double_buffered_command_accelerator #(
         .clk(clk), .resetb(resetb),
         .wr_en(core_wr_en), .wr_buffer(mem_wr_buffer), .rd_buffer(compute_buffer_q), .wr_bank(mem_wr_bank),
         .wr_addr(mem_wr_addr), .wr_data(mem_wr_data),
+        .pack_wr_en(pack_wr_en && mem_wr_ready), .pack_wr_buffer(pack_wr_buffer),
+        .pack_wr_bank(pack_wr_bank), .pack_wr_base(pack_wr_base),
+        .pack_wr_data(pack_wr_data), .pack_wr_mask(pack_wr_mask),
         .start(core_start), .accum_out(accum_out),
         .busy(core_busy), .done(core_done)
     );
