@@ -82,6 +82,8 @@ module tito_systolic_double_buffered_stream_accelerator #(
     ) scratchpad (
         .clk(clk), .resetb(resetb),
         .wr_en(wr_en), .wr_buffer(wr_buffer), .wr_bank(wr_bank), .wr_addr(wr_addr), .wr_data(wr_data),
+        .pack_wr_en(1'b0), .pack_wr_buffer(1'b0), .pack_wr_bank(1'b0),
+        .pack_wr_base({ADDR_W{1'b0}}), .pack_wr_data({(4*DATA_W){1'b0}}), .pack_wr_mask(4'b0000),
         .rd_en(rd_en), .rd_buffer(rd_buffer), .a_rd_addr(a_rd_addr), .b_rd_addr(b_rd_addr),
         .a_rd_data(a_rd_data), .b_rd_data(b_rd_data)
     );
