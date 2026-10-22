@@ -43,6 +43,7 @@ This remains prototype RTL, not a production GPU or completed SoC integration. G
 
 ## Documentation and learning path
 
+- [SLM prototype roadmap — source of truth](docs/roadmap_slm_prototype.md)
 - [Project scope](docs/00_project_scope.md)
 - [Architecture proposal](docs/01_architecture.md)
 - [Existing CGRA source audit](docs/02_existing_cgra_audit.md)
