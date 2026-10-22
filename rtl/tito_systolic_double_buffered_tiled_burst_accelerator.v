@@ -11,7 +11,8 @@ module tito_systolic_double_buffered_tiled_burst_accelerator #(
     parameter integer MEM_ADDR_W = (N*K > 1 ? $clog2(N*K) : 1),
     parameter integer RESULT_ADDR_W = (N*N > 1 ? $clog2(N*N) : 1),
     parameter integer BURST_LEN_W = (N*K > 1 ? $clog2(N*K+1) : 1),
-    parameter integer TILE_COUNT_W = 8
+    parameter integer TILE_COUNT_W = 8,
+    parameter integer PACKED_INGRESS = 0
 ) (
     input  wire                         clk,
     input  wire                         resetb,
@@ -30,6 +31,10 @@ module tito_systolic_double_buffered_tiled_burst_accelerator #(
     input  wire                         data_valid,
     output wire                         data_ready,
     input  wire [DATA_W-1:0]            data,
+    input  wire                         packed_data_valid,
+    output wire                         packed_data_ready,
+    input  wire [4*DATA_W-1:0]          packed_data,
+    input  wire [3:0]                   packed_data_mask,
 
     input  wire                         result_rd_en,
     input  wire [RESULT_ADDR_W-1:0]     result_rd_addr,
@@ -76,7 +81,7 @@ module tito_systolic_double_buffered_tiled_burst_accelerator #(
     tito_systolic_double_buffered_burst_command_accelerator #(
         .N(N), .K(K), .DATA_W(DATA_W), .ACC_W(ACC_W),
         .MEM_ADDR_W(MEM_ADDR_W), .RESULT_ADDR_W(RESULT_ADDR_W),
-        .BURST_LEN_W(BURST_LEN_W)
+        .BURST_LEN_W(BURST_LEN_W), .PACKED_INGRESS(PACKED_INGRESS)
     ) burst_core (
         .clk(clk), .resetb(core_resetb),
         .burst_start_valid(burst_start_valid_core),
@@ -84,6 +89,8 @@ module tito_systolic_double_buffered_tiled_burst_accelerator #(
         .burst_buffer(load_index[0]), .burst_bank(burst_bank),
         .burst_base_addr(burst_base_addr), .burst_len(burst_len),
         .data_valid(data_valid), .data_ready(data_ready), .data(data),
+        .packed_data_valid(packed_data_valid), .packed_data_ready(packed_data_ready),
+        .packed_data(packed_data), .packed_data_mask(packed_data_mask),
         .burst_done(burst_done), .burst_error(burst_error),
         .cmd_start(cmd_start), .cmd_accumulate(cmd_accumulate),
         .cmd_buffer(cmd_buffer_q), .busy(core_busy), .done(core_done),
