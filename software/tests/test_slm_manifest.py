@@ -47,6 +47,9 @@ class OperatorManifestTests(unittest.TestCase):
         conventions = self.manifest["tensor_conventions"]
         self.assertEqual(conventions["reference_dtype"], "python_float")
         self.assertEqual(conventions["quantization"], "symmetric_per_output_channel_weights; per_tensor_activations_with_explicit_scale")
+        self.assertEqual(conventions["rounding"], "round_to_nearest_ties_to_even")
+        self.assertIn("activations_signed_int8_-128_to_127", conventions["saturation"])
+        self.assertIn("weights_signed_int8_-127_to_127", conventions["saturation"])
         self.assertEqual(
             self.manifest["status"],
             "reference_only_hardware_mapping_not_implemented",
