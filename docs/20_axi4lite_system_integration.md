@@ -20,9 +20,9 @@ The done bits are event latches, not the raw one-cycle hardware pulses. A comman
 
 ## Integration test
 
-`tb/tb_tito_systolic_axi4lite_system.v` models byte-addressed external memory and drives the subsystem exclusively through AXI4-Lite for configuration and commands. It loads an identity matrix A and a known matrix B, launches a single-tile matrix multiplication, requests writeback, then checks all 16 32-bit result words against the independent expected matrix. It then injects a one-shot AXI SLVERR on writeback and checks that STATUS bit 10 and ERROR_CODE value 6 are visible to software, followed by W1C clearing of the error latch/code. The AXI memory model checks basic burst fields and handles the read/write handshakes.
+`tb/tb_tito_systolic_axi4lite_system.v` models byte-addressed external memory and drives the subsystem exclusively through AXI4-Lite for configuration and commands. It loads two K tiles through the AXI4-Lite-configured system: both A tiles are identity matrices, B0 contains 1–16, and B1 contains 10–25. It verifies the four input bursts at A0/B0/A1/B1 addresses, four-beat read burst lengths, and all 16 accumulated 32-bit results (11–41). The memory model also checks write burst alignment, 4 KiB boundaries, and WLAST placement. It then injects a one-shot AXI SLVERR on writeback and checks that STATUS bit 10 and ERROR_CODE value 6 are visible to software, followed by W1C clearing of the error latch/code.
 
-Verified in [GitHub Actions run 39547281630](https://github.com/chomskyintech/TitoGPU/actions/runs/39547281630): the full `make sim` regression passed, including end-to-end writeback-error visibility and clearing, and the `make synth-system` generic synthesis target passed.
+The single-tile and software-visible error-handling checks passed in [GitHub Actions run 39547431080](https://github.com/chomskyintech/TitoGPU/actions/runs/39547431080). The new two-tile accumulation and explicit burst checks are awaiting CI verification.
 
 Run locally:
 
@@ -35,7 +35,7 @@ make synth-system
 
 - This is a single AXI4-Lite manager-facing control interface and one AXI4 memory-master interface; no interconnect or multi-tenant arbitration is included.
 - The default datapath is signed INT8 operands and 32-bit accumulation/result words. The current top-level checks the 32-bit AXI data/accumulator configuration.
-- The integration test covers one K tile. Multi-tile loading and memory gaps are covered by the lower-level accelerator regression, not yet by this AXI-Lite-only end-to-end test.
+- The AXI-Lite end-to-end test now targets two K tiles. It checks four input read bursts and the writeback burst's WLAST placement and 4 KiB boundary rule. Dedicated protocol coverage for randomized stalls, all response codes, read-side errors, and maximum burst length remains future work.
 - Generic Yosys synthesis establishes elaboration and generic logic synthesis only. It does not establish placed timing, silicon area, power, or performance per watt.
 
 Related sources:
