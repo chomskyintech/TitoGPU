@@ -18,7 +18,7 @@ module tb_tito_systolic_axi4lite_system;
  reg [ADDR_W-1:0] rd_base,wr_base; reg [7:0] rd_len,wr_len,rd_index,wr_index;
  reg rd_active=0,wr_addr_seen=0,wr_resp_pending=0;
  reg inject_next_bresp_error=0;
- integer i,cycles,read_burst_count,bus_cycle;
+ integer i,cycles,read_burst_count,bus_cycle,phase_start_cycle,compute_observed_cycles,writeback_observed_cycles;
  reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
  reg [ADDR_W+ID_W+13-1:0] prev_aw_payload,prev_ar_payload;
  reg [31:0] prev_wdata,prev_rdata;
@@ -156,6 +156,7 @@ module tb_tito_systolic_axi4lite_system;
   end
   repeat(4) @(negedge clk); resetb=1;
   axil_write('h08,'h0100); axil_write('h0C,'h0200); axil_write('h10,2); axil_write('h14,'h0300);
+  phase_start_cycle=bus_cycle;
   axil_write('h00,1);
   // A second start while compute is active must be rejected and latched.
   axil_write('h00,1);
@@ -167,11 +168,16 @@ module tb_tito_systolic_axi4lite_system;
   cycles=0; status=0;
   while(!status[1] && !status[2] && cycles<5000) begin axil_read('h04,status); cycles=cycles+1; end
   if(!status[1] || status[2]) $fatal(1,"compute did not complete successfully, STATUS=%h",status);
+  compute_observed_cycles=bus_cycle-phase_start_cycle;
+  $display("PERF: software-observed compute command-to-status latency=%0d AXI memory-model cycles",compute_observed_cycles);
   axil_write('h04,'h00000002); // clear compute done before checking writeback event
+  phase_start_cycle=bus_cycle;
   axil_write('h00,2);
   cycles=0; status=0;
   while(!status[9] && !status[10] && cycles<5000) begin axil_read('h04,status); cycles=cycles+1; end
   if(!status[9] || status[10]) $fatal(1,"writeback did not complete successfully, STATUS=%h",status);
+  writeback_observed_cycles=bus_cycle-phase_start_cycle;
+  $display("PERF: software-observed writeback command-to-status latency=%0d AXI memory-model cycles",writeback_observed_cycles);
   for(i=0;i<16;i=i+1) begin
    if({mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]} !== (i*2+11))
     $fatal(1,"multi-tile result mismatch at word %0d: expected %0d got %h%h%h%h",i,(i*2+11),mem['h0300+i*4+3],mem['h0300+i*4+2],mem['h0300+i*4+1],mem['h0300+i*4]);
