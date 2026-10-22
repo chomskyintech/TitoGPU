@@ -33,12 +33,12 @@ Counters help explain *why* latency changes, not just *whether* it changes.
 
 ## Baseline result
 
-The lower-level reference run is 137 cycles at `MEM_GAP=0`, 147 cycles at `MEM_GAP=2`, and 181 cycles at `MEM_GAP=5`. Separately, the passing software-facing AXI-Lite system regression measured 147 cycles from compute command to done-status observation and 60 cycles from writeback command to done-status observation. Those top-level values include register access and polling overhead and reflect the deterministic memory/backpressure model; see the linked baseline document and [CI run](https://github.com/chomskyintech/TitoGPU/actions/runs/39816750924). Keep the two measurement boundaries separate.
+The lower-level reference run is 137 cycles at `MEM_GAP=0`, 147 cycles at `MEM_GAP=2`, and 181 cycles at `MEM_GAP=5`. Separately, the passing software-facing AXI-Lite system regression measured the following command-to-status latencies as the inter-beat AXI R-channel gap was swept: 147/60 cycles (compute/writeback) at gap 0, 147/60 at gap 2, and 171/60 at gap 5. These top-level values include register access and polling overhead and reflect the deterministic memory/backpressure model; see the linked baseline document and [CI run](https://github.com/chomskyintech/TitoGPU/actions/runs/39817490186). Keep the two measurement boundaries separate.
 
 ## Exercise
 
 1. Run the three lower-level memory-gap configurations.
-2. Find the `PERF:` lines in the full-system CI simulation log and record both top-level latencies.
+2. Run the top-level test at `+MEM_GAP=0`, `+MEM_GAP=2`, and `+MEM_GAP=5`; find the `PERF:` lines and record both top-level latencies.
 3. Explain why the lower-level 147-cycle result and top-level 147-cycle compute result are not interchangeable even though the numbers happen to match.
 4. Propose one change to reduce compute-idle cycles, then rerun the same workload and compare results.
 5. Keep the correctness checks enabled: a faster result is invalid if any matrix output or protocol check fails.
