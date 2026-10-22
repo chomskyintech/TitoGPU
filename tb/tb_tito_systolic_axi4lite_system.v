@@ -18,7 +18,13 @@ module tb_tito_systolic_axi4lite_system;
  reg [ADDR_W-1:0] rd_base,wr_base; reg [7:0] rd_len,wr_len,rd_index,wr_index;
  reg rd_active=0,wr_addr_seen=0,wr_resp_pending=0;
  reg inject_next_bresp_error=0;
- integer i,cycles,read_burst_count;
+ integer i,cycles,read_burst_count,bus_cycle;
+ reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
+ reg [ADDR_W+ID_W+12-1:0] prev_aw_payload,prev_ar_payload;
+ reg [31:0] prev_wdata,prev_rdata;
+ reg [3:0] prev_wstrb;
+ reg prev_wlast,prev_rlast;
+ reg [ID_W+1:0] prev_b_payload,prev_r_payload;
  assign bvalid_m=bvalid_m_q; assign arready_m=arready_m_q; assign rvalid_m=rvalid_m_q;
  assign bresp_m=bresp_m_q; assign rresp_m=rresp_m_q; assign rid=rid_q; assign rdata_m=rdata_m_q; assign rlast=rlast_q;
  always #5 clk=~clk;
@@ -38,9 +44,37 @@ module tb_tito_systolic_axi4lite_system;
   if(!resetb) begin
    awready_m<=0; wready_m<=0; arready_m_q<=0; rvalid_m_q<=0; bvalid_m_q<=0;
    rd_active<=0; wr_addr_seen<=0; wr_resp_pending<=0; rd_index<=0; wr_index<=0;
-   rd_base<=0; rd_len<=0; wr_base<=0; wr_len<=0; rlast_q<=0; rresp_m_q<=0; bresp_m_q<=0; rid_q<=0; rdata_m_q<=0; read_burst_count<=0;
+   rd_base<=0; rd_len<=0; wr_base<=0; wr_len<=0; rlast_q<=0; rresp_m_q<=0; bresp_m_q<=0; rid_q<=0; rdata_m_q<=0; read_burst_count<=0; bus_cycle<=0;
+   prev_aw_stall<=0; prev_w_stall<=0; prev_ar_stall<=0; prev_r_stall<=0; prev_b_stall<=0;
   end else begin
-   awready_m<=1; wready_m<=1; arready_m_q<=1;
+   bus_cycle<=bus_cycle+1;
+   // Deterministic READY gaps exercise independent AXI channel handshakes.
+   awready_m <= (bus_cycle % 4 != 1);
+   wready_m <= (bus_cycle % 5 != 2);
+   arready_m_q <= (bus_cycle % 4 != 0);
+
+   // Check VALID and payload stability after any cycle stalled by READY.
+   if(prev_aw_stall && (!awvalid_m || {awid,awaddr_m,awlen,awsize,awburst} !== prev_aw_payload))
+    $fatal(1,"AXI AW payload/VALID changed while stalled");
+   if(prev_w_stall && (!wvalid_m || {wdata_m,wstrb_m,wlast} !== {prev_wdata,prev_wstrb,prev_wlast}))
+    $fatal(1,"AXI W payload/VALID changed while stalled");
+   if(prev_ar_stall && (!arvalid_m || {arid,araddr_m,arlen,arsize,arburst} !== prev_ar_payload))
+    $fatal(1,"AXI AR payload/VALID changed while stalled");
+   if(prev_r_stall && (!rvalid_m_q || {rid_q,rdata_m_q,rresp_m_q,rlast_q} !== {prev_r_payload,prev_rdata,prev_rlast}))
+    $fatal(1,"AXI R payload/VALID changed while stalled");
+   if(prev_b_stall && (!bvalid_m_q || bresp_m_q !== prev_b_payload[1:0]))
+    $fatal(1,"AXI B payload/VALID changed while stalled");
+   prev_aw_stall <= awvalid_m && !awready_m;
+   prev_aw_payload <= {awid,awaddr_m,awlen,awsize,awburst};
+   prev_w_stall <= wvalid_m && !wready_m;
+   prev_wdata <= wdata_m; prev_wstrb <= wstrb_m; prev_wlast <= wlast;
+   prev_ar_stall <= arvalid_m && !arready_m_q;
+   prev_ar_payload <= {arid,araddr_m,arlen,arsize,arburst};
+   prev_r_stall <= rvalid_m_q && !rready_m;
+   prev_r_payload <= {rid_q,rresp_m_q};
+   prev_rdata <= rdata_m_q; prev_rlast <= rlast_q;
+   prev_b_stall <= bvalid_m_q && !bready_m;
+   prev_b_payload <= {ID_W'(0),bresp_m_q};
    if(arvalid_m && arready_m_q) begin
     if(rd_active) $fatal(1,"unexpected overlapping AXI read address");
     if(arsize!=2 || arburst!=1 || arid!=0) $fatal(1,"bad AR fields");
@@ -61,7 +95,7 @@ module tb_tito_systolic_axi4lite_system;
      rdata_m_q<={mem[rd_base+(rd_index+1'b1)*4+3],mem[rd_base+(rd_index+1'b1)*4+2],mem[rd_base+(rd_index+1'b1)*4+1],mem[rd_base+(rd_index+1'b1)*4]};
      rid_q<=0; rresp_m_q<=0; rlast_q<=((rd_index+1'b1)==rd_len); rvalid_m_q<=1;
     end
-   end else if(rd_active && !rvalid_m_q) begin
+   end else if(rd_active && !rvalid_m_q && (bus_cycle % 3 != 0)) begin
     rdata_m_q<={mem[rd_base+rd_index*4+3],mem[rd_base+rd_index*4+2],mem[rd_base+rd_index*4+1],mem[rd_base+rd_index*4]};
     rid_q<=0; rresp_m_q<=0; rlast_q<=(rd_index==rd_len); rvalid_m_q<=1;
    end
