@@ -43,6 +43,15 @@ vvp build_tito_dbuf +MEM_GAP=2
 vvp build_tito_dbuf +MEM_GAP=5
 ```
 
+## Software-visible top-level measurements
+
+The AXI-Lite system testbench also prints two separate metrics:
+
+- **Compute command-to-status latency:** from just before the AXI-Lite CONTROL start write through the first successful STATUS poll that observes compute done.
+- **Writeback command-to-status latency:** from just before the AXI-Lite writeback start write through the first successful STATUS poll that observes writeback done.
+
+These include AXI-Lite command/response and polling overhead as well as accelerator and memory-model latency. The memory model uses deterministic READY gaps and R-channel response gaps, so these figures describe this testbench configuration only. The numbers are printed by CI simulation logs; rerun the regression to obtain current measurements. They must not be mixed with the lower-level DMA-reader operation-cycle counts above.
+
 ## Interpretation
 
 - The 0-gap case is the idealized memory-response case, not a realistic external-memory guarantee.
