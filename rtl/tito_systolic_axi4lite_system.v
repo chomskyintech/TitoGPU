@@ -2,7 +2,8 @@
 module tito_systolic_axi4lite_system #(
  parameter integer N=4, K=4, DATA_W=8, AXI_DATA_W=32, ACC_W=32, ADDR_W=32,
  parameter integer MEM_ADDR_W=(N*K>1?$clog2(N*K):1), RESULT_ADDR_W=(N*N>1?$clog2(N*N):1),
- parameter integer BURST_LEN_W=(N*K>1?$clog2(N*K+1):1), TILE_COUNT_W=8, ID_W=4
+ parameter integer BURST_LEN_W=(N*K>1?$clog2(N*K+1):1), TILE_COUNT_W=8, ID_W=4,
+ parameter integer PACKED_INGRESS=0
 )(
  input wire clk, resetb,
  input wire [ADDR_W-1:0] s_axi_awaddr, input wire s_axi_awvalid, output wire s_axi_awready,
@@ -32,7 +33,7 @@ module tito_systolic_axi4lite_system #(
  .op_busy(op_busy),.op_done(op_done),.op_error(op_error),.writeback_start(wb_start),.writeback_base_addr(wb_base),
  .writeback_start_ready(wb_ready),.writeback_busy(wb_busy),.writeback_done(wb_done),.writeback_error(wb_error),.writeback_error_code(wb_error_code));
  tito_systolic_axi4_double_buffered_accelerator #(.N(N),.K(K),.DATA_W(DATA_W),.AXI_DATA_W(AXI_DATA_W),.ACC_W(ACC_W),
- .ADDR_W(ADDR_W),.MEM_ADDR_W(MEM_ADDR_W),.RESULT_ADDR_W(RESULT_ADDR_W),.BURST_LEN_W(BURST_LEN_W),.TILE_COUNT_W(TILE_COUNT_W),.ID_W(ID_W)) accel(
+ .ADDR_W(ADDR_W),.MEM_ADDR_W(MEM_ADDR_W),.RESULT_ADDR_W(RESULT_ADDR_W),.BURST_LEN_W(BURST_LEN_W),.TILE_COUNT_W(TILE_COUNT_W),.ID_W(ID_W),.PACKED_INGRESS(PACKED_INGRESS)) accel(
  .clk(clk),.resetb(resetb),.op_start(op_start),.a_base_addr(a_base),.b_base_addr(b_base),.op_tile_count(tile_count),
  .op_busy(op_busy),.op_done(op_done),.op_error(op_error),.result_rd_en(1'b0),.result_rd_addr({RESULT_ADDR_W{1'b0}}),
  .result_rd_data(),.result_rd_valid(),.result_rd_ready(),.writeback_start(wb_start),.writeback_base_addr(wb_base),
