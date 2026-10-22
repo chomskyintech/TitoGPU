@@ -47,7 +47,7 @@ The testbench now prints cycle-level markers, so you can test the scheduling hyp
 - `TRACE-RLAST` marks the final accepted beat for that burst.
 - `TRACE-COMPUTE-START` and `TRACE-COMPUTE-DONE` bound each tile's compute interval.
 
-On the passing trace regression, tile 0 compute starts at cycle 65, tile 1 A finishes at 87, tile 0 compute completes at 100, tile 1 B finishes at 111, and tile 1 compute starts at 117 for `MEM_GAP=0` and `MEM_GAP=2`. At `MEM_GAP=5`, the corresponding cycles are 77, 105, 112, 135, and 141. That shows the next tile's B load completes after the current compute, followed by a six-cycle interval before the next compute launch. The exact cause of that hand-off should be confirmed by inspecting the RTL state/flag transitions before editing the controller.
+On the passing trace regression, tile 0 compute starts at cycle 65, tile 1 A's external final R beat is at 87, tile 0 compute completes at 100, tile 1 B's external final R beat is at 111, tile 1's local buffer pair becomes ready at 116, and tile 1 compute starts at 117 for `MEM_GAP=0` and `MEM_GAP=2`. At `MEM_GAP=5`, those key cycles are 77, 105, 112, 135, 140, and 141. The new `TRACE-LOAD-DONE` and `TRACE-PAIR-READY` markers show that the five cycles from external RLAST to local buffer readiness are the packed-word lane-drain path, not controller hand-off; only one cycle remains from pair-ready to compute start. Inspect the [AXI4 read adapter](../../rtl/tito_systolic_axi4_read_adapter.v) and [DMA reader](../../rtl/tito_systolic_double_buffered_dma_reader.v) before proposing a datapath optimization.
 
 ### Follow-up exercise
 
@@ -55,4 +55,10 @@ On the passing trace regression, tile 0 compute starts at cycle 65, tile 1 A fin
 2. Inspect how `burst_done`, `a_loaded`, `b_loaded`, `next_ready_q`, `compute_done_q`, and `cmd_start` are updated in the [tiled burst controller](../../rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v).
 3. Explain which wait comes from memory response scheduling and which comes from controller hand-off. Do not equate them.
 4. If changing the controller, preserve the current correctness and AXI protocol checks, and compare the same `MEM_GAP=0/2/5` cases.
+
+
+
+### What the detailed trace corrected
+
+Do not mistake the time between external AXI RLAST and local buffer readiness for scheduler delay. Each 32-bit AXI R beat is unpacked into four 8-bit logical beats by the read adapter. The trace shows five cycles from the external final R beat to the tiled controller's burst-complete/pair-ready observation, then one cycle to launch the next tile. The likely optimization space is therefore the width-conversion/data-delivery path or the serialized A-then-B request schedule, not simply removing six controller states. Parallel lane writes or multiple outstanding reads would be larger interface/verification changes; quantify them before implementation.
 
