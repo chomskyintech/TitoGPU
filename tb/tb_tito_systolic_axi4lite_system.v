@@ -20,6 +20,7 @@ module tb_tito_systolic_axi4lite_system;
  reg inject_next_bresp_error=0;
  integer i,cycles,read_burst_count,bus_cycle,phase_start_cycle,compute_observed_cycles,writeback_observed_cycles;
  integer mem_gap=2,r_gap_count=0;
+ integer aw_stall_cycles=0,w_stall_cycles=0,ar_stall_cycles=0,r_stall_cycles=0,b_stall_cycles=0,r_gap_idle_cycles=0;
  reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
  reg [ADDR_W+ID_W+13-1:0] prev_aw_payload,prev_ar_payload;
  reg [31:0] prev_wdata,prev_rdata;
@@ -47,8 +48,15 @@ module tb_tito_systolic_axi4lite_system;
    rd_active<=0; wr_addr_seen<=0; wr_resp_pending<=0; rd_index<=0; wr_index<=0; r_gap_count<=0;
    rd_base<=0; rd_len<=0; wr_base<=0; wr_len<=0; rlast_q<=0; rresp_m_q<=0; bresp_m_q<=0; rid_q<=0; rdata_m_q<=0; read_burst_count<=0; bus_cycle<=0;
    prev_aw_stall<=0; prev_w_stall<=0; prev_ar_stall<=0; prev_r_stall<=0; prev_b_stall<=0;
+   aw_stall_cycles<=0; w_stall_cycles<=0; ar_stall_cycles<=0; r_stall_cycles<=0; b_stall_cycles<=0; r_gap_idle_cycles<=0;
   end else begin
    bus_cycle<=bus_cycle+1;
+   if(awvalid_m && !awready_m) aw_stall_cycles<=aw_stall_cycles+1;
+   if(wvalid_m && !wready_m) w_stall_cycles<=w_stall_cycles+1;
+   if(arvalid_m && !arready_m_q) ar_stall_cycles<=ar_stall_cycles+1;
+   if(rvalid_m_q && !rready_m) r_stall_cycles<=r_stall_cycles+1;
+   if(bvalid_m_q && !bready_m) b_stall_cycles<=b_stall_cycles+1;
+   if(rd_active && !rvalid_m_q && r_gap_count>0) r_gap_idle_cycles<=r_gap_idle_cycles+1;
    // Deterministic READY gaps exercise independent AXI channel handshakes.
    awready_m <= (bus_cycle % 4 != 1);
    wready_m <= (bus_cycle % 5 != 2);
@@ -209,6 +217,7 @@ module tb_tito_systolic_axi4lite_system;
   axil_read('h18,status);
   if(status[3:0]!==0) $fatal(1,"error code did not clear with writeback-error W1C");
   $display("PASS: software can clear writeback error status and code without reset");
+  $display("PERF-STALLS: AW=%0d W=%0d AR=%0d R=%0d B=%0d response-gap-idle=%0d cycles",aw_stall_cycles,w_stall_cycles,ar_stall_cycles,r_stall_cycles,b_stall_cycles,r_gap_idle_cycles);
   $finish;
  end
  initial begin #300000; $fatal(1,"timeout"); end
