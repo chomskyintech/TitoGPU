@@ -20,7 +20,7 @@ module tb_tito_systolic_axi4lite_system;
  reg inject_next_bresp_error=0;
  integer i,cycles,read_burst_count,bus_cycle;
  reg prev_aw_stall=0,prev_w_stall=0,prev_ar_stall=0,prev_r_stall=0,prev_b_stall=0;
- reg [ADDR_W+ID_W+12-1:0] prev_aw_payload,prev_ar_payload;
+ reg [ADDR_W+ID_W+13-1:0] prev_aw_payload,prev_ar_payload;
  reg [31:0] prev_wdata,prev_rdata;
  reg [3:0] prev_wstrb;
  reg prev_wlast,prev_rlast;
