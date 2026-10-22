@@ -82,3 +82,26 @@ Study and test these files:
 3. Carry the packed word, lane mask, and handshake through the DMA reader and burst controller.
 4. Connect that interface to this scratchpad port and prove packed/byte-stream bit-exact equivalence, including partial words and backpressure.
 5. Re-run the `MEM_GAP=0/2/5` system tests and compare local-ready and command-to-status latency. Until then, report no end-to-end speedup.
+
+
+## Milestone follow-up — packed ingress measured
+
+The packed ingress path is now integrated end-to-end and is tested alongside the byte-stream reference. Start with the [packed ingress design note](../22_packed_ingress_optimization_design.md), then trace the data path through the [AXI read adapter](../../rtl/tito_systolic_axi4_read_adapter.v), [DMA reader](../../rtl/tito_systolic_double_buffered_dma_reader.v), [tiled burst controller](../../rtl/tito_systolic_double_buffered_tiled_burst_accelerator.v), [burst command accelerator](../../rtl/tito_systolic_double_buffered_burst_command_accelerator.v), [command accelerator](../../rtl/tito_systolic_double_buffered_command_accelerator.v), and [banked scratchpad](../../rtl/tito_systolic_double_buffered_banked_scratchpad.v). The full-system comparison is in the [performance baseline](../21_performance_baseline.md).
+
+The implementation keeps the byte-stream path as the default and enables packed mode with `PACKED_INGRESS=1`. Each accepted 32-bit AXI R beat is presented as four ordered INT8 lanes with a per-lane mask. The burst controller advances its logical byte count by the number of valid lanes, while the scratchpad commits those lanes in parallel. The adapter still validates physical AXI beat count, RID, RRESP, and RLAST; the DMA reader checks logical tile completion.
+
+| R-channel gap | Byte-stream internal latency | Packed internal latency | Cycles saved | Byte-stream command-to-status | Packed command-to-status |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 140 | 100 | 40 | 147 | 105 |
+| 2 | 140 | 116 | 24 | 147 | 123 |
+| 5 | 164 | 152 | 12 | 171 | 159 |
+
+The MAC core remains busy for 32 cycles in both modes. This confirms the change reduces input-ingress overhead rather than making the compute array faster. The writeback path remains at 60 cycles. All simulation and synthesis jobs passed in [CI run 39851285393](https://github.com/chomskyintech/TitoGPU/actions/runs/39851285393).
+
+### Learning exercise
+
+1. Read the `PACKED_INGRESS` parameter propagation from the top-level wrapper down to the scratchpad.
+2. Explain why the mask is necessary when the logical byte count is not divisible by four.
+3. Explain why `packed_data_last` describes the final logical packed word, while `m_axi_rlast` is still checked against the physical AXI burst length.
+4. Run `make sim` and compare the three gap settings. State why the cycle savings shrink as memory response gaps grow.
+5. Do not infer power or silicon-area improvements from cycle counts or generic Yosys cell counts; those require a technology-specific implementation and physical design flow.
