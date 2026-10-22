@@ -18,6 +18,8 @@ jobs:
           sudo apt-get install -y iverilog yosys
       - name: Run simulation regression
         run: make sim
+      - name: Run tiny transformer reference tests
+        run: PYTHONPATH=software python3 -m unittest discover -s software/tests -v
       - name: Synthesize AXI-connected accelerator
         run: make synth-axi
       - name: Synthesize AXI write adapter
