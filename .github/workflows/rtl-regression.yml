@@ -1,0 +1,30 @@
+name: TitoGPU RTL regression
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  rtl-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install RTL tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog yosys
+      - name: Run simulation regression
+        run: make sim
+      - name: Run tiny transformer reference tests
+        run: PYTHONPATH=software python3 -m unittest discover -s software/tests -v
+      - name: Synthesize AXI-connected accelerator
+        run: make synth-axi
+      - name: Synthesize AXI write adapter
+        run: make synth-writeback
+      - name: Synthesize AXI-Lite control/status register bank
+        run: make synth-control
+      - name: Synthesize software-facing AXI-Lite system
+        run: make synth-system

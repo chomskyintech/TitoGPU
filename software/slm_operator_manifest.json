@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "workload_id": "titogpu_tiny_char_transformer_v1",
+  "status": "reference_only_hardware_mapping_not_implemented",
+  "model": {
+    "family": "decoder_only_character_transformer",
+    "vocab_size": 32,
+    "max_context": 16,
+    "layers": 1,
+    "hidden_size": 16,
+    "attention_heads": 2,
+    "head_dimension": 8,
+    "feed_forward_size": 32,
+    "batch_size": 1,
+    "activation": "SiLU",
+    "normalization": "LayerNorm",
+    "layer_norm_epsilon": 1e-5,
+    "attention": "causal_scaled_dot_product",
+    "decode": "greedy_argmax",
+    "weight_seed": 20261022,
+    "weights_status": "deterministic_untrained",
+    "tokenizer": {
+      "encoding": "lowercase_character",
+      "tokens_in_order": "abcdefghijklmnopqrstuvwxyz .,?\n",
+      "unknown_token_id": 31,
+      "case_fold": true,
+      "unsupported_character": "map_to_unknown"
+    }
+  },
+  "tensor_conventions": {
+    "sequence_layout": "[sequence, feature]",
+    "linear_weight_layout": "[output_feature, input_feature]",
+    "linear_bias_layout": "[output_feature]",
+    "reference_dtype": "python_float",
+    "candidate_linear_weight_dtype": "signed_int8",
+    "candidate_linear_accumulator_dtype": "signed_int32",
+    "quantization": "symmetric_per_output_channel_weights; per_tensor_activations_with_explicit_scale",
+    "rounding": "round_to_nearest_ties_to_even",
+    "saturation": "activations_signed_int8_-128_to_127; weights_signed_int8_-127_to_127",
+    "comparison_tolerance": "to_be_set_after_golden_quantized_layer_comparisons"
+  },
+  "operators": [
+    {"name":"token_embedding","kind":"embedding_lookup","input_shapes":[["T"]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"position_embedding_add","kind":"elementwise_add","input_shapes":[["T",16],[ "T",16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"attention_layer_norm","kind":"layer_norm","input_shapes":[["T",16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"query_projection","kind":"linear","input_shapes":[["T",16],[16,16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"titogpu_candidate"},
+    {"name":"key_projection","kind":"linear","input_shapes":[["T",16],[16,16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"titogpu_candidate"},
+    {"name":"value_projection","kind":"linear","input_shapes":[["T",16],[16,16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"titogpu_candidate"},
+    {"name":"causal_attention_scores","kind":"scaled_dot_product_attention","input_shapes":[["T",16],["T",16],["T",16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"attention_output_projection","kind":"linear","input_shapes":[["T",16],[16,16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"titogpu_candidate"},
+    {"name":"attention_residual_add","kind":"elementwise_add","input_shapes":[["T",16],["T",16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"ffn_layer_norm","kind":"layer_norm","input_shapes":[["T",16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"ffn_input_projection","kind":"linear","input_shapes":[["T",16],[32,16]],"output_shape":["T",32],"reference_execution":"host","candidate_execution":"titogpu_candidate"},
+    {"name":"ffn_silu","kind":"silu","input_shapes":[["T",32]],"output_shape":["T",32],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"ffn_output_projection","kind":"linear","input_shapes":[["T",32],[16,32]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"titogpu_candidate"},
+    {"name":"ffn_residual_add","kind":"elementwise_add","input_shapes":[["T",16],[ "T",16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"final_layer_norm","kind":"layer_norm","input_shapes":[["T",16]],"output_shape":["T",16],"reference_execution":"host","candidate_execution":"host"},
+    {"name":"language_model_head","kind":"linear","input_shapes":[["T",16],[32,16]],"output_shape":["T",32],"reference_execution":"host","candidate_execution":"titogpu_candidate"},
+    {"name":"greedy_token_selection","kind":"argmax","input_shapes":[["32"]],"output_shape":[],"reference_execution":"host","candidate_execution":"host"}
+  ],
+  "hardware_mapping_notes": {
+    "systolic_array_shape": [4, 4],
+    "output_tiles_for_16_output_features": 4,
+    "k_tiles_for_16_input_features": 4,
+    "tile_commands_per_16x16_projection": 16,
+    "note": "Candidate mapping only. Current RTL is not invoked by this manifest; host orchestration, addresses, quantization and K-tile accumulation must be specified and verified separately."
+  }
+}
