@@ -139,3 +139,11 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 18 — Software-Controlled TitoGPU System
 
 [Open the lesson](18-software-controlled-system.md). Follow AXI-Lite register programming through compute and AXI4 result writeback, then validate external-memory results against a reference matrix.
+
+## Lesson 19 — Measuring a Hardware Performance Baseline
+
+[Open the lesson](19-cycle-count-baseline.md). Learn to define latency boundaries, compare memory-gap sweeps, and separate MAC-core busy time from total operation time.
+
+## Lesson 20 — Finding the Limit of Double-Buffered Prefetch
+
+[Open the lesson](20-prefetch-compute-overlap.md). Use accepted AXI read beats and controller sequencing to diagnose whether next-tile loading is hidden behind compute.
