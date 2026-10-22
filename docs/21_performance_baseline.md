@@ -58,7 +58,15 @@ These include AXI-Lite command/response and polling overhead as well as accelera
 | 2 cycles | 147 cycles | 60 cycles |
 | 5 cycles | 171 cycles | 60 cycles |
 
-The writeback path does not issue input reads in this test, so its latency is unchanged by this R-channel input-response gap. The compute latency remains flat between gaps 0 and 2, then increases by 24 cycles at gap 5. This indicates the current two-tile workload hides the smaller response gap within other work, but the larger gap becomes visible. These are software-observed latencies, not standalone accelerator compute time, and must not be mixed with the lower-level DMA-reader operation-cycle counts above.
+The simulation-only hierarchical monitor also records internal `dut.op_start` to `dut.op_done` latency. This boundary measures the accelerator operation interval and excludes the later AXI-Lite status polling, although the interval still depends on the configured memory model. The latest passing regression [CI run 39823198333](https://github.com/chomskyintech/TitoGPU/actions/runs/39823198333) measured:
+
+| AXI R-channel inter-beat gap | Internal `op_start` → `op_done` | Compute command-to-status | Difference (command-to-status minus internal) | Writeback command-to-status |
+|---:|---:|---:|---:|---:|
+| 0 cycles | 140 cycles | 147 cycles | 7 cycles | 60 cycles |
+| 2 cycles | 140 cycles | 147 cycles | 7 cycles | 60 cycles |
+| 5 cycles | 164 cycles | 171 cycles | 7 cycles | 60 cycles |
+
+For this testbench, the compute command-to-status measurement is consistently 7 cycles longer than the internal operation interval. Treat that as an observation about this exact testbench and measurement boundary, not a universal AXI-Lite overhead. The writeback path does not issue input reads in this test, so its latency is unchanged by this R-channel input-response gap. The compute latency remains flat between gaps 0 and 2, then increases by 24 cycles at gap 5. This indicates the current two-tile workload hides the smaller response gap within other work, but the larger gap becomes visible. These are software-observed latencies, not standalone accelerator compute time, and must not be mixed with the lower-level DMA-reader operation-cycle counts above.
 
 The testbench also prints aggregate AXI stall counters after the end-to-end and error-path checks. In the passing run [39817798604](https://github.com/chomskyintech/TitoGPU/actions/runs/39817798604), the counts were:
 
@@ -79,7 +87,6 @@ These are aggregate counts across the complete testbench run, including the foll
 
 ## Next measurements
 
-1. Capture the internal `op_start` and `op_done` events to measure accelerator operation latency separately from software polling and command overhead.
-2. Add per-phase stall counters, so the initial compute operation can be distinguished from subsequent writeback error/recovery checks.
-3. Add larger matrix/tile counts and report useful operations per cycle.
-4. Only after the cycle baseline is stable, use technology-appropriate synthesis and physical implementation flows for area, timing, and power estimates.
+1. Add per-phase stall counters, so the initial compute operation can be distinguished from subsequent writeback error/recovery checks.
+2. Add larger matrix/tile counts and report useful operations per cycle.
+3. Only after the cycle baseline is stable, use technology-appropriate synthesis and physical implementation flows for area, timing, and power estimates.
