@@ -63,3 +63,22 @@ On the passing trace regression, tile 0 compute starts at cycle 65, tile 1 A's e
 
 Do not mistake the time between external AXI RLAST and local buffer readiness for scheduler delay. Each 32-bit AXI R beat is unpacked into four 8-bit logical beats by the read adapter. The trace shows five cycles from the external final R beat to the tiled controller's burst-complete/pair-ready observation, then one cycle to launch the next tile. The likely optimization space is therefore the width-conversion/data-delivery path or the serialized A-then-B request schedule, not simply removing six controller states. Parallel lane writes or multiple outstanding reads would be larger interface/verification changes; quantify them before implementation.
 
+
+## Implementation checkpoint: packed local writes
+
+The first RTL slice adds an optional four-lane write port to the register-array tile scratchpad while retaining the original byte-write port as a reference path. The four low-to-high byte lanes map to consecutive logical addresses; `pack_wr_mask` supports a partial final word. This is a local datapath primitive, **not yet wired to the AXI read adapter or DMA reader**, so it does not yet improve end-to-end latency.
+
+Study and test these files:
+
+- [Double-buffered banked scratchpad RTL](../../rtl/tito_systolic_double_buffered_banked_scratchpad.v) — compare the original single-byte write path with the packed-lane path.
+- [Packed scratchpad unit test](../../tb/tb_tito_packed_scratchpad.v) — checks lane order, A/B address mapping, masked lanes, buffer selection, and legacy byte-write compatibility.
+- [Makefile regression target](../../Makefile) — runs the new unit test as part of `make sim`.
+- [Packed ingress design note](../22_packed_ingress_optimization_design.md) — system-level requirements before connecting this primitive to the AXI ingress path.
+
+### Next integration steps
+
+1. Run the new unit test and full regression; resolve any simulation or synthesis issues before proceeding.
+2. Add a packed valid/ready interface to the read adapter without changing the default byte-stream mode.
+3. Carry the packed word, lane mask, and handshake through the DMA reader and burst controller.
+4. Connect that interface to this scratchpad port and prove packed/byte-stream bit-exact equivalence, including partial words and backpressure.
+5. Re-run the `MEM_GAP=0/2/5` system tests and compare local-ready and command-to-status latency. Until then, report no end-to-end speedup.
