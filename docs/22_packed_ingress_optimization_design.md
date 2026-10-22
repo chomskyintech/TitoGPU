@@ -2,7 +2,7 @@
 
 ## Status
 
-Investigation complete; RTL implementation not started. This document records the trace evidence and a candidate design so the next change is deliberate and verifiable.
+Investigation complete; **first local RTL slice implemented, system ingress integration pending**. The scratchpad now has a masked four-lane write port and a focused unit test. The AXI read adapter and DMA path still use the original byte-stream interface, so no end-to-end speedup is claimed yet.
 
 ## Problem statement
 
@@ -20,7 +20,7 @@ This is a candidate for the current register-array scratchpad model, not a claim
 
 ## Interface and correctness constraints
 
-Before changing RTL, define a packed-ingress contract:
+The local scratchpad interface is now present as `pack_wr_en`, `pack_wr_buffer`, `pack_wr_bank`, `pack_wr_base`, `pack_wr_data`, and `pack_wr_mask`. The legacy byte port remains in place. The current wrapper explicitly ties the new port off, so existing behavior is unchanged. The following system-level contract still must be satisfied before integration:
 
 - One accepted AXI R beat creates one packed logical transfer with four ordered 8-bit lanes.
 - The packed transfer remains stable under backpressure until accepted.
@@ -39,11 +39,12 @@ Before changing RTL, define a packed-ingress contract:
 ## Verification plan
 
 1. Keep the current byte-stream path and tests passing as a reference.
-2. Add unit tests for packed lane order, full words, partial final words, backpressure, and A/B plus buffer addressing.
-3. Compare the resulting scratchpad contents against the existing byte-stream implementation for identical transactions.
-4. Run the two-tile AXI4-Lite end-to-end test at MEM_GAP=0/2/5, including R-channel protocol faults and result reference checks.
-5. Recheck every synthesis job and compare cycle traces and latency against the current baseline.
-6. Report the cycle reduction separately from generic synthesis cell-count changes; do not claim PPA improvements without technology-specific implementation.
+2. Exercise the local packed port with unit tests for lane order, masks/partial words, and A/B plus buffer addressing; then extend tests for out-of-range addresses and parameter variations.
+3. Add a packed valid/ready interface to the AXI read adapter and carry it through the DMA reader and burst controller.
+4. Compare the resulting scratchpad contents against the existing byte-stream implementation for identical transactions.
+5. Run the two-tile AXI4-Lite end-to-end test at MEM_GAP=0/2/5, including R-channel protocol faults and result reference checks.
+6. Recheck every synthesis job and compare cycle traces and latency against the current baseline.
+7. Report the cycle reduction separately from generic synthesis cell-count changes; do not claim PPA improvements without technology-specific implementation.
 
 ## Acceptance criteria
 
