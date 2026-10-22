@@ -100,4 +100,4 @@ M1 is complete only when:
 
 ## Next implementation task
 
-Run the full reference and manifest tests in CI and fix any failures. Next, test the quantisation contract in CI, then audit the accelerator command interface to design the host-to-RTL tile harness. Add golden intermediate outputs and a deterministic, project-authored training/export path. Do not begin transformer-specific RTL until numerical semantics and the harness contract are explicit.
+Run the full reference and manifest tests in CI and fix any failures. Next, verify the new quantisation tests and 16×16 tile-orchestration test in CI. The new RTL testbench drives the existing command interface directly and checks all 256 outputs against an independent full-matrix integer reference; it does not yet load matrices from Python or test quantized transformer activations. After the run passes, connect software-generated quantized matrices to a reproducible test vector format and compare software/RTL results. Do not begin transformer-specific RTL until numerical semantics and the harness contract are explicit.
