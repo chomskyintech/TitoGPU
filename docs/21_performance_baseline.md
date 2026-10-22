@@ -60,6 +60,16 @@ These include AXI-Lite command/response and polling overhead as well as accelera
 
 The writeback path does not issue input reads in this test, so its latency is unchanged by this R-channel input-response gap. The compute latency remains flat between gaps 0 and 2, then increases by 24 cycles at gap 5. This indicates the current two-tile workload hides the smaller response gap within other work, but the larger gap becomes visible. These are software-observed latencies, not standalone accelerator compute time, and must not be mixed with the lower-level DMA-reader operation-cycle counts above.
 
+The testbench also prints aggregate AXI stall counters after the end-to-end and error-path checks. In the passing run [39817798604](https://github.com/chomskyintech/TitoGPU/actions/runs/39817798604), the counts were:
+
+| R-channel inter-beat gap | AW stalled cycles | W stalled cycles | AR stalled cycles | R stalled cycles | B stalled cycles | R-response-gap idle cycles |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 cycles | 0 | 7 | 2 | 36 | 0 | 0 |
+| 2 cycles | 0 | 7 | 2 | 12 | 0 | 24 |
+| 5 cycles | 0 | 6 | 2 | 0 | 0 | 60 |
+
+These are aggregate counts across the complete testbench run, including the follow-up writeback error/recovery checks; they are not counters for only the first compute command. `R stalled cycles` means the DUT held RREADY low while the memory model had RVALID asserted. `R-response-gap idle cycles` counts cycles with an active read burst, no RVALID, and a positive configured gap counter. The two counts should be interpreted together: a longer inter-beat delay creates more cycles with no RVALID and may reduce the number of cycles in which a valid beat is stalled by the receiver.
+
 ## Interpretation
 
 - The 0-gap case is the idealized memory-response case, not a realistic external-memory guarantee.
@@ -69,7 +79,7 @@ The writeback path does not issue input reads in this test, so its latency is un
 
 ## Next measurements
 
-1. Add latency and stall counters for AW/W/AR/R/B channels so the test can explain where cycles are spent.
-2. Separate accelerator compute time from software polling and command overhead.
+1. Capture the internal `op_start` and `op_done` events to measure accelerator operation latency separately from software polling and command overhead.
+2. Add per-phase stall counters, so the initial compute operation can be distinguished from subsequent writeback error/recovery checks.
 3. Add larger matrix/tile counts and report useful operations per cycle.
 4. Only after the cycle baseline is stable, use technology-appropriate synthesis and physical implementation flows for area, timing, and power estimates.
