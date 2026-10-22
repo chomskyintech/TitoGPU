@@ -147,3 +147,8 @@ These are learning gates, not claims that the milestones have already passed. Re
 ## Lesson 20 — Finding the Limit of Double-Buffered Prefetch
 
 [Open the lesson](20-prefetch-compute-overlap.md). Use accepted AXI read beats and controller sequencing to diagnose whether next-tile loading is hidden behind compute.
+
+
+## Lesson 21 — Packed AXI Ingress and Parallel Scratchpad Writes
+
+[Open the lesson](21-packed-ingress-optimization.md). Learn how the packed AXI read path commits multiple INT8 lanes per accepted beat, preserves partial-word correctness, and measures cycle-count gains against the byte-stream reference.
