@@ -85,7 +85,15 @@ The top-level testbench now scopes additional simulation counters to each operat
 - **Compute phase:** accepted AXI AR addresses, accepted R beats, R-channel response-gap idle cycles, and R-channel stalls while the compute operation is busy.
 - **Writeback phase:** accepted AW addresses, accepted W beats, accepted B responses, W-channel stalls, and cycles with no active AW/W/B channel.
 
-These counters help distinguish memory input service from output writeback activity. They are testbench instrumentation, not synthesizable registers. The writeback idle-cycle counter is only a coarse no-channel-active measure; do not label it pure B-response latency. Use the printed `PERF-COMPUTE-PHASE` and `PERF-WRITEBACK-PHASE` lines from a passing run before drawing conclusions.
+These counters help distinguish memory input service from output writeback activity. They are testbench instrumentation, not synthesizable registers. The writeback idle-cycle counter is only a coarse no-channel-active measure; do not label it pure B-response latency. A passing run [39830603645](https://github.com/chomskyintech/TitoGPU/actions/runs/39830603645) measured:
+
+| R-channel gap | AR handshakes | R beats | R-gap idle cycles | R stalls | AW handshakes | W beats | B responses | W stalls | Writeback non-channel-active cycles |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 cycles | 4 | 16 | 0 | 36 | 1 | 16 | 1 | 4 | 32 |
+| 2 cycles | 4 | 16 | 24 | 12 | 1 | 16 | 1 | 4 | 32 |
+| 5 cycles | 4 | 16 | 60 | 0 | 1 | 16 | 1 | 3 | 32 |
+
+The same regression also counts core-busy cycles versus operation-busy cycles when the local core is idle. That additional counter was added after this run; record its numbers only after the newest CI regression passes.
 
 ## Interpretation
 
