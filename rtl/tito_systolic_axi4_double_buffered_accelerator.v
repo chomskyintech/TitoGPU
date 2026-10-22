@@ -13,7 +13,8 @@ module tito_systolic_axi4_double_buffered_accelerator #(
     parameter integer RESULT_ADDR_W = (N*N > 1 ? $clog2(N*N) : 1),
     parameter integer BURST_LEN_W = (N*K > 1 ? $clog2(N*K+1) : 1),
     parameter integer TILE_COUNT_W = 8,
-    parameter integer ID_W = 4
+    parameter integer ID_W = 4,
+    parameter integer PACKED_INGRESS = 0
 ) (
     input  wire                         clk,
     input  wire                         resetb,
@@ -74,6 +75,9 @@ module tito_systolic_axi4_double_buffered_accelerator #(
     wire [BURST_LEN_W-1:0] rd_req_len;
     wire rd_data_valid, rd_data_ready, rd_data_last, rd_error;
     wire [DATA_W-1:0] rd_data;
+    wire packed_data_valid, packed_data_ready, packed_data_last;
+    wire [AXI_DATA_W-1:0] packed_data;
+    wire [AXI_DATA_W/DATA_W-1:0] packed_data_mask;
 
     wire [ACC_W-1:0] core_result_rd_data;
     wire core_result_rd_valid, core_result_rd_en;
@@ -100,7 +104,8 @@ module tito_systolic_axi4_double_buffered_accelerator #(
     tito_systolic_double_buffered_dma_reader #(
         .N(N), .K(K), .DATA_W(DATA_W), .ACC_W(ACC_W), .ADDR_W(ADDR_W),
         .MEM_ADDR_W(MEM_ADDR_W), .RESULT_ADDR_W(RESULT_ADDR_W),
-        .BURST_LEN_W(BURST_LEN_W), .TILE_COUNT_W(TILE_COUNT_W)
+        .BURST_LEN_W(BURST_LEN_W), .TILE_COUNT_W(TILE_COUNT_W),
+        .PACKED_INGRESS(PACKED_INGRESS)
     ) frontend (
         .clk(clk), .resetb(resetb),
         .op_start(op_start), .a_base_addr(a_base_addr), .b_base_addr(b_base_addr),
@@ -109,19 +114,23 @@ module tito_systolic_axi4_double_buffered_accelerator #(
         .rd_req_addr(rd_req_addr), .rd_req_len(rd_req_len),
         .rd_data_valid(rd_data_valid), .rd_data_ready(rd_data_ready),
         .rd_data(rd_data), .rd_data_last(rd_data_last), .rd_error(rd_error),
+        .packed_data_valid(packed_data_valid), .packed_data_ready(packed_data_ready),
+        .packed_data(packed_data), .packed_data_mask(packed_data_mask), .packed_data_last(packed_data_last),
         .result_rd_en(core_result_rd_en), .result_rd_addr(core_result_rd_addr),
         .result_rd_data(core_result_rd_data), .result_rd_valid(core_result_rd_valid)
     );
 
     tito_systolic_axi4_read_adapter #(
         .ADDR_W(ADDR_W), .DATA_W(DATA_W), .AXI_DATA_W(AXI_DATA_W),
-        .LEN_W(BURST_LEN_W), .ID_W(ID_W)
+        .LEN_W(BURST_LEN_W), .ID_W(ID_W), .PACKED_OUTPUT(PACKED_INGRESS)
     ) axi_read (
         .clk(clk), .resetb(resetb),
         .rd_req_valid(rd_req_valid), .rd_req_ready(rd_req_ready),
         .rd_req_addr(rd_req_addr), .rd_req_len(rd_req_len),
         .rd_data_valid(rd_data_valid), .rd_data_ready(rd_data_ready),
         .rd_data(rd_data), .rd_data_last(rd_data_last), .rd_error(rd_error),
+        .packed_data_valid(packed_data_valid), .packed_data_ready(packed_data_ready),
+        .packed_data(packed_data), .packed_data_mask(packed_data_mask), .packed_data_last(packed_data_last),
         .m_axi_arid(m_axi_arid), .m_axi_araddr(m_axi_araddr),
         .m_axi_arlen(m_axi_arlen), .m_axi_arsize(m_axi_arsize),
         .m_axi_arburst(m_axi_arburst), .m_axi_arvalid(m_axi_arvalid),
@@ -156,6 +165,8 @@ module tito_systolic_axi4_double_buffered_accelerator #(
     initial begin
         if (ACC_W != AXI_DATA_W)
             $error("Initial integrated writeback requires ACC_W == AXI_DATA_W");
+        if (PACKED_INGRESS && AXI_DATA_W != 4*DATA_W)
+            $error("Packed ingress currently requires four logical lanes per AXI beat");
     end
 endmodule
 
